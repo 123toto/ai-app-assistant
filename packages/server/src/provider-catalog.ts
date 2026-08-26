@@ -1,5 +1,8 @@
 /** Providers available without installing an additional AI SDK package. */
-export type BuiltInProvider = "anthropic" | "google" | "mistral" | "ollama" | "openai";
+export const AI_APP_ASSISTANT_PROVIDERS = ["anthropic", "google", "mistral", "ollama", "openai"] as const;
+
+/** Provider identifier derived from the runtime-neutral exported catalog. */
+export type BuiltInProvider = typeof AI_APP_ASSISTANT_PROVIDERS[number];
 
 /** Stable provider metadata suitable for a settings interface. */
 export interface AiProviderInfo {

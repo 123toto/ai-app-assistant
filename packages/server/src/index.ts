@@ -80,6 +80,7 @@ export {
   type AiAppAssistantTelemetrySummary
 } from "./telemetry.js";
 export {
+  AI_APP_ASSISTANT_PROVIDERS,
   AiModelDiscoveryError,
   listAiModels,
   listAiProviders,

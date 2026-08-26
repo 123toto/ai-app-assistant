@@ -64,6 +64,23 @@ const aiAppAssistant = createManagedAiAppAssistantServer({
 await aiAppAssistant.initialize();
 ```
 
+For deployments exposing one provider at a time, the library maps generic
+runtime values without requiring provider-specific environment variables:
+
+```ts
+const deployment = createAiAppAssistantDeploymentDefaults({
+  enabled: env.AI_APP_ASSISTANT_LLM_ENABLED,
+  provider: env.AI_APP_ASSISTANT_PROVIDER,
+  model: env.AI_APP_ASSISTANT_LLM_MODEL,
+  apiKey: env.AI_APP_ASSISTANT_API_KEY,
+  baseURL: env.AI_APP_ASSISTANT_LOCAL_LLM_BASE_URL
+});
+```
+
+`baseURL` is required for the local `ollama` provider. API keys and encryption
+keys must come from a runtime secret store; they must never be committed or
+embedded in an application image.
+
 `enabled: false` disables every provider operation while keeping the host
 application and the read-only administration endpoints available.
 
