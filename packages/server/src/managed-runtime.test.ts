@@ -8,6 +8,8 @@ import { createManagedAiAppAssistantRuntime } from "./managed-runtime.js";
 import type { AnswerGenerator } from "./types.js";
 import { createMemoryAiAppAssistantTelemetryStore } from "./telemetry.js";
 
+const actor = { id: "user", label: "User" };
+
 describe("createManagedAiAppAssistantRuntime", () => {
   it("initializes and automatically rebuilds after a connection change", async () => {
     const repository = createAiAppAssistantConfigurationRepository({
@@ -116,6 +118,32 @@ describe("createManagedAiAppAssistantRuntime", () => {
       totalTokens: 15
     });
     expect(JSON.stringify(await telemetryStore.summary())).not.toContain("private-user");
+    runtime.dispose();
+  });
+
+  it("never creates or calls a generator when globally disabled", async () => {
+    const testConnection = vi.fn(async () => ({
+      success: true as const,
+      model: "ollama:qwen3",
+      latencyMs: 1
+    }));
+    const configuration = new AiAppAssistantConfigurationManager({
+      repository: createAiAppAssistantConfigurationRepository({
+        store: createMemoryAiAppAssistantStore(),
+        secretProtector: { protect: String, unprotect: String }
+      }),
+      enabled: false,
+      defaultConfiguration: { provider: "ollama", model: "qwen3", access: { mode: "all" } },
+      testConnection
+    });
+    const createGenerator = vi.fn(({ model }: { model: string }) => generator(model));
+    const runtime = createManagedAiAppAssistantRuntime({ configuration, createGenerator });
+
+    await runtime.initialize();
+    await expect(runtime.answer(request("disabled"), actor))
+      .rejects.toMatchObject({ status: 503, code: "assistant_disabled" });
+    expect(testConnection).not.toHaveBeenCalled();
+    expect(createGenerator).not.toHaveBeenCalled();
     runtime.dispose();
   });
 });

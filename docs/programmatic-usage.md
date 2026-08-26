@@ -68,6 +68,7 @@ import { createManagedAiAppAssistantServer } from "@123toto/ai-app-assistant-ser
 const aiAppAssistant = createManagedAiAppAssistantServer({
   documents,
   configuration: {
+    enabled: process.env.AI_APP_ASSISTANT_LLM_ENABLED === "true",
     storage: { type: "redis", client: redis, prefix: "my-app:ai-app-assistant:" },
     encryptionKey: process.env.AI_APP_ASSISTANT_SECRET_ENCRYPTION_KEY!,
     defaultConfiguration: {
@@ -92,6 +93,9 @@ const aiAppAssistant = createManagedAiAppAssistantServer({
 
 await aiAppAssistant.initialize();
 ```
+
+With `enabled: false`, access is unavailable and no generation, connection test
+or model discovery request can reach a provider.
 
 Documents can be replaced after application bootstrap, for example when an OpenAPI document is generated at runtime:
 

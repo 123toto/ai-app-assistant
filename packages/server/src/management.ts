@@ -55,6 +55,8 @@ export interface AiAppAssistantConfigurationSynchronizer {
 
 export interface AiAppAssistantConfigurationManagerOptions {
   repository: AiAppAssistantConfigurationRepository;
+  /** Global kill switch. When false, no provider operation is allowed. */
+  enabled?: boolean | (() => boolean);
   /** Defaults to the local in-memory quota implementation. */
   quotaStore?: AiAppAssistantQuotaStore;
   /** Environment or deployment defaults. They are never persisted automatically. */
@@ -87,6 +89,7 @@ export type AiAppAssistantManagementErrorCode =
   | "conflict"
   | "invalid_request"
   | "not_configured"
+  | "assistant_disabled"
   | "quota_reached"
   | "secret_storage_unavailable";
 
@@ -129,6 +132,13 @@ export class AiAppAssistantConfigurationManager {
     this.#quotaStore = options.quotaStore ?? createMemoryAiAppAssistantQuotaStore();
   }
 
+  /** Returns the current state of the host-controlled global kill switch. */
+  public isEnabled(): boolean {
+    return typeof this.#options.enabled === "function"
+      ? this.#options.enabled()
+      : this.#options.enabled ?? true;
+  }
+
   /** Returns the built-in provider catalogue; no credentials are exposed. */
   public listProviders(): AiProviderInfo[] {
     return listAiProviders();
@@ -136,6 +146,7 @@ export class AiAppAssistantConfigurationManager {
 
   /** Discovers models with an explicit key or the currently configured secret. */
   public async listModels(input: AiAppAssistantCredentials): Promise<AiModelInfo[]> {
+    this.assertEnabled();
     const apiKey = await this.resolveApiKey(input.provider, input.apiKey);
     if (this.#options.listModels) {
       return this.#options.listModels({ ...input, ...(apiKey ? { apiKey } : {}) });
@@ -163,7 +174,10 @@ export class AiAppAssistantConfigurationManager {
         let connected = event.connectionValidated;
         if (event.reloadRequired) {
           this.#recentConnectionValidation = undefined;
-          if (connected) {
+          if (!this.isEnabled()) {
+            connected = false;
+            this.#runtimeConnection = { status: "disabled", checkedAt: this.now() };
+          } else if (connected) {
             const configuration = await this.getRuntimeConfiguration();
             this.#runtimeConnection = configuration
               ? {
@@ -197,6 +211,7 @@ export class AiAppAssistantConfigurationManager {
 
   /** Tests credentials and briefly caches a successful result for the next save. */
   public async testConnection(input: AiAppAssistantConnectionTestInput): Promise<AiAppAssistantConnectionResult> {
+    this.assertEnabled();
     const apiKey = await this.resolveApiKey(input.provider, input.apiKey);
     const connection = this.#options.testConnection
       ? await this.#options.testConnection({ ...input, ...(apiKey ? { apiKey } : {}) })
@@ -228,6 +243,10 @@ export class AiAppAssistantConfigurationManager {
   /** Checks the effective stored/deployment connection used by live questions. */
   public async validateRuntimeConnection(): Promise<boolean> {
     this.#lastReconnectAttempt = Date.now();
+    if (!this.isEnabled()) {
+      this.#runtimeConnection = { status: "disabled", checkedAt: this.now() };
+      return false;
+    }
     const configuration = await this.getRuntimeConfiguration();
     if (!configuration || (configuration.provider !== "ollama" && !configuration.apiKey)) {
       this.#runtimeConnection = {
@@ -278,6 +297,7 @@ export class AiAppAssistantConfigurationManager {
       (initialActive?.provider === input.provider ? initialActive.apiKey : undefined) ??
       this.resolveDefaultApiKey(input.provider);
     const initialConnectionChanged = connectionChanged(initialActive, input);
+    if (!this.isEnabled() && initialConnectionChanged) throw disabled();
     let connection = initialConnectionChanged
       ? await this.validateConnectionForSave(input, initialApiKey)
       : this.lastKnownConnection(input.provider, input.model);
@@ -544,6 +564,7 @@ export class AiAppAssistantConfigurationManager {
 
   /** Combines configuration, provider health and application access rules. */
   public async canUse(identity: AiAppAssistantRuntimeIdentity): Promise<boolean> {
+    if (!this.isEnabled()) return false;
     const configuration = await this.getRuntimeConfiguration();
     if (!configuration || (configuration.provider !== "ollama" && !configuration.apiKey)) return false;
     if (!await this.ensureRuntimeConnection()) return false;
@@ -564,6 +585,7 @@ export class AiAppAssistantConfigurationManager {
 
   /** Enforces access and quota immediately before any model call. */
   public async assertCanAsk(identity: AiAppAssistantRuntimeIdentity): Promise<void> {
+    this.assertEnabled();
     if (!await this.canUse(identity)) {
       throw forbidden("AI assistant access is not enabled for this user");
     }
@@ -580,6 +602,7 @@ export class AiAppAssistantConfigurationManager {
 
   /** Retries a failed provider lazily, with a shared backoff across requests. */
   public async ensureRuntimeConnection(): Promise<boolean> {
+    if (!this.isEnabled()) return false;
     if (this.#runtimeConnection.status === "connected") return true;
     const intervalMs = Math.max(1_000, this.#options.reconnectIntervalMs ?? 30_000);
     if (Date.now() - this.#lastReconnectAttempt < intervalMs) return false;
@@ -717,6 +740,10 @@ export class AiAppAssistantConfigurationManager {
 
   private now(): string {
     return (this.#options.now?.() ?? new Date()).toISOString();
+  }
+
+  private assertEnabled(): void {
+    if (!this.isEnabled()) throw disabled();
   }
 
   private async publishAndEmit(event: AiAppAssistantConfigurationChangeEvent): Promise<void> {
@@ -873,6 +900,14 @@ function configurationChanges(
 
 function forbidden(message: string): AiAppAssistantManagementError {
   return new AiAppAssistantManagementError(403, "forbidden", message);
+}
+
+function disabled(): AiAppAssistantManagementError {
+  return new AiAppAssistantManagementError(
+    503,
+    "assistant_disabled",
+    "AI assistant is disabled"
+  );
 }
 
 // Compile-time guarantee that the AI SDK result remains compatible with the

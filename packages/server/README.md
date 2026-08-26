@@ -44,6 +44,7 @@ import { createManagedAiAppAssistantServer } from "@123toto/ai-app-assistant-ser
 
 const aiAppAssistant = createManagedAiAppAssistantServer({
   configuration: {
+    enabled: process.env.AI_APP_ASSISTANT_LLM_ENABLED === "true",
     storage: { type: "redis", client: redis },
     encryptionKey: process.env.AI_APP_ASSISTANT_SECRET_ENCRYPTION_KEY!,
     defaultConfiguration: {
@@ -62,6 +63,9 @@ const aiAppAssistant = createManagedAiAppAssistantServer({
 
 await aiAppAssistant.initialize();
 ```
+
+`enabled: false` disables every provider operation while keeping the host
+application and the read-only administration endpoints available.
 
 Documents may also be loaded after application bootstrap with `aiAppAssistant.setDocuments(documents)`.
 

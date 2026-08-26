@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   createAiAppAssistantConfigurationRepository,
   createMemoryAiAppAssistantStore
@@ -92,6 +92,61 @@ describe("createManagedAiAppAssistantServer", () => {
     );
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ available: true });
+    server.dispose();
+  });
+
+  it("exposes disabled access and blocks HTTP provider operations", async () => {
+    const testConnection = vi.fn(async () => ({
+      success: true as const,
+      model: "mistral:mistral-small-latest",
+      latencyMs: 1
+    }));
+    const createGenerator = vi.fn(() => ({
+      modelId: "mistral:mistral-small-latest",
+      async generate() {
+        return { answer: { summary: "Answer", sections: [] }, evidence: [], limitations: [] };
+      }
+    }));
+    const server = createManagedAiAppAssistantServer({
+      configuration: {
+        enabled: false,
+        repository: createAiAppAssistantConfigurationRepository({
+          store: createMemoryAiAppAssistantStore(),
+          secretProtector: { protect: String, unprotect: String }
+        }),
+        defaultConfiguration: {
+          provider: "mistral",
+          model: "mistral-small-latest",
+          apiKey: "secret",
+          access: { mode: "all" }
+        },
+        testConnection
+      },
+      runtime: { createGenerator },
+      http: {
+        resolveIdentity: () => ({ id: "user", label: "User" }),
+        authorizeAdministration: () => undefined
+      }
+    });
+    await server.initialize();
+
+    const access = await server.fetch.handle(new Request("http://local/ai-app-assistant/access"));
+    expect(await access.json()).toMatchObject({ available: false });
+    const ask = await server.fetch.handle(new Request("http://local/ai-app-assistant/ask", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        protocolVersion: "4",
+        requestId: "disabled-request",
+        html: "<main>Page</main>",
+        question: "Explain",
+        locale: "en"
+      })
+    }));
+    expect(ask.status).toBe(503);
+    expect(await ask.json()).toMatchObject({ error: "assistant_disabled" });
+    expect(testConnection).not.toHaveBeenCalled();
+    expect(createGenerator).not.toHaveBeenCalled();
     server.dispose();
   });
 });

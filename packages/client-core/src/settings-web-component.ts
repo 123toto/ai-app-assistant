@@ -149,7 +149,9 @@ export class AiAppAssistantSettingsElement extends HTMLElementBase {
     }
     const busy = snapshot ? !["idle", "ready", "error"].includes(snapshot.status) : true;
     const connectionStatus = configuration?.connection.status;
-    const connectionBadge = !configuration || snapshot?.status === "loading" || connectionStatus === "unchecked"
+    const connectionBadge = connectionStatus === "disabled"
+      ? "<b class=disconnected>Disabled</b>"
+      : !configuration || snapshot?.status === "loading" || connectionStatus === "unchecked"
       ? "<b class=checking>Checking…</b>"
       : connectionStatus === "connected"
         ? "<b class=connected>Connected</b>"

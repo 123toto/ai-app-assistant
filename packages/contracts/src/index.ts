@@ -60,7 +60,7 @@ export const aiAppAssistantConfigurationAuditEntrySchema = z.object({
 });
 
 export const aiAppAssistantRuntimeConnectionSchema = z.object({
-  status: z.enum(["connected", "disconnected", "not-configured", "unchecked"]),
+  status: z.enum(["connected", "disconnected", "not-configured", "unchecked", "disabled"]),
   checkedAt: z.string().datetime().optional(),
   model: z.string().optional()
 });

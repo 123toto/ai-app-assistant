@@ -88,6 +88,7 @@ import { createManagedAiAppAssistantServer } from "@123toto/ai-app-assistant-ser
 
 const aiAppAssistant = createManagedAiAppAssistantServer({
   configuration: {
+    enabled: process.env.AI_APP_ASSISTANT_LLM_ENABLED === "true",
     storage: { type: "redis", client: redis, prefix: "my-app:ai-app-assistant:" },
     encryptionKey: process.env.AI_APP_ASSISTANT_SECRET_ENCRYPTION_KEY!,
     defaultConfiguration: {
@@ -113,6 +114,9 @@ const aiAppAssistant = createManagedAiAppAssistantServer({
 
 await aiAppAssistant.initialize();
 ```
+
+`enabled: false` is a server-side kill switch. Access is refused and model
+generation, connection tests and model discovery never contact a provider.
 
 The application remains responsible only for identity, business-specific privacy rules, its document sources and optional visual customization.
 

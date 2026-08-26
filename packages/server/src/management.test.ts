@@ -74,6 +74,36 @@ describe("AiAppAssistantConfigurationManager", () => {
     expect(result.reloadRequired).toBe(false);
   });
 
+  it("blocks every provider operation when globally disabled", async () => {
+    const testConnection = vi.fn(async () => ({
+      success: true as const,
+      model: "mistral:mistral-small-latest",
+      latencyMs: 1
+    }));
+    const listModels = vi.fn(async () => []);
+    const manager = createManager({
+      enabled: false,
+      defaultConfiguration: {
+        provider: "mistral",
+        model: "mistral-small-latest",
+        apiKey: "secret",
+        access: { mode: "all" }
+      },
+      testConnection,
+      listModels
+    });
+
+    expect(await manager.validateRuntimeConnection()).toBe(false);
+    expect(await manager.canUse(actor)).toBe(false);
+    await expect(manager.testConnection({ provider: "mistral", model: "test" }))
+      .rejects.toMatchObject({ status: 503, code: "assistant_disabled" });
+    await expect(manager.listModels({ provider: "mistral" }))
+      .rejects.toMatchObject({ status: 503, code: "assistant_disabled" });
+    expect((await manager.getView(actor)).connection.status).toBe("disabled");
+    expect(testConnection).not.toHaveBeenCalled();
+    expect(listModels).not.toHaveBeenCalled();
+  });
+
   it("keeps deployment connection fields automatic when only policies are saved", async () => {
     const manager = createManager({
       defaultConfiguration: {

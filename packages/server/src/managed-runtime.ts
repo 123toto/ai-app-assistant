@@ -95,6 +95,11 @@ export function createManagedAiAppAssistantRuntime<TIdentity extends AiAppAssist
 
   /** Recreates the assistant only when a usable provider connection exists. */
   const rebuild = async (event: Pick<AiAppAssistantConfigurationChangeEvent, "connectionValidated">): Promise<void> => {
+    if (!options.configuration.isEnabled()) {
+      assistant = undefined;
+      activeGenerator = undefined;
+      return;
+    }
     const connected = event.connectionValidated || await options.configuration.validateRuntimeConnection();
     const configuration = await options.configuration.getRuntimeConfiguration();
     if (!connected || !configuration) {

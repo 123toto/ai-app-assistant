@@ -1,6 +1,6 @@
 {
   "name": "@123toto/ai-app-assistant-contracts",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "license": "MIT",
   "description": "Shared transport contracts for AI App Assistant packages",
   "repository": { "type": "git", "url": "git+https://github.com/123toto/ai-app-assistant.git", "directory": "packages/contracts" },
