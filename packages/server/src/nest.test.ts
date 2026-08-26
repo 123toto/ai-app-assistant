@@ -17,6 +17,7 @@ describe("Nest connector", () => {
     });
     const controller = dynamicModule.controllers?.[0] as object;
     expect(Reflect.getMetadata(PATH_METADATA, controller)).toBe("assistant");
+    expect(Reflect.getMetadata("swagger/apiExcludeController", controller)).toEqual([true]);
   });
 
   it("forwards parsed JSON and the native request to the managed server", async () => {

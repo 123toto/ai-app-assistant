@@ -13,6 +13,10 @@ import {
 } from "@nestjs/common";
 import type { ManagedAiAppAssistantServer } from "./managed-server.js";
 
+// Same metadata key used by @nestjs/swagger's ApiExcludeController decorator.
+// Keeping it local avoids making Swagger a dependency of the optional Nest connector.
+const OPENAPI_EXCLUDE_CONTROLLER_METADATA = "swagger/apiExcludeController";
+
 /** Injection token exported so a host can update documents after Swagger bootstrap. */
 export const MANAGED_AI_APP_ASSISTANT_SERVER = Symbol.for("@123toto/ai-app-assistant-server/managed");
 
@@ -80,6 +84,10 @@ export function createManagedAiAppAssistantNestModule<
   Res()(ManagedAiAppAssistantNestController.prototype, "handle", 1);
   const descriptor = Object.getOwnPropertyDescriptor(ManagedAiAppAssistantNestController.prototype, "handle");
   if (descriptor) All(["", "*path"])(ManagedAiAppAssistantNestController.prototype, "handle", descriptor);
+  // A catch-all Nest route is exposed as the non-standard HTTP verb `all` by
+  // Swagger. Exclude this transport controller so it cannot invalidate the
+  // consuming application's OpenAPI document.
+  Reflect.defineMetadata(OPENAPI_EXCLUDE_CONTROLLER_METADATA, [true], ManagedAiAppAssistantNestController);
   Controller(route)(ManagedAiAppAssistantNestController);
 
   class ManagedAiAppAssistantNestModule {}
