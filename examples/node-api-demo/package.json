@@ -1,0 +1,16 @@
+{
+  "name": "@123toto/ai-app-assistant-example-node-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@123toto/ai-app-assistant-contracts": "workspace:*",
+    "@123toto/ai-app-assistant-server": "workspace:*"
+  }
+}

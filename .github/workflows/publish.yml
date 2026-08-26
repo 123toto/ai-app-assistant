@@ -1,0 +1,80 @@
+name: Publish NPM packages
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Validate and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out the release
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Set up release tooling
+        run: npm install --global npm@12.0.2 pnpm@11.9.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify release versions
+        env:
+          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+        run: node scripts/verify-release-version.mjs
+
+      - name: Run checks
+        run: pnpm check
+
+      - name: Pack release archives
+        run: |
+          mkdir -p artifacts/release
+          pnpm --filter @123toto/ai-app-assistant-contracts pack --pack-destination artifacts/release
+          pnpm --filter @123toto/ai-app-assistant-server pack --pack-destination artifacts/release
+          pnpm --filter @123toto/ai-app-assistant-client pack --pack-destination artifacts/release
+
+      - name: Publish release archives
+        env:
+          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          release_version="${RELEASE_VERSION#v}"
+
+          publish_if_missing() {
+            package_name="$1"
+            archive_path="$2"
+
+            if npm view "${package_name}@${release_version}" version >/dev/null 2>&1; then
+              echo "${package_name}@${release_version} is already published"
+              return
+            fi
+
+            npm publish "${archive_path}" --access public
+          }
+
+          publish_if_missing \
+            "@123toto/ai-app-assistant-contracts" \
+            "artifacts/release/123toto-ai-app-assistant-contracts-${release_version}.tgz"
+          publish_if_missing \
+            "@123toto/ai-app-assistant-server" \
+            "artifacts/release/123toto-ai-app-assistant-server-${release_version}.tgz"
+          publish_if_missing \
+            "@123toto/ai-app-assistant-client" \
+            "artifacts/release/123toto-ai-app-assistant-client-${release_version}.tgz"

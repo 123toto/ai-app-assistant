@@ -1,0 +1,71 @@
+{
+  "name": "@123toto/ai-app-assistant-client",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "Framework-neutral browser client and UI for contextual in-app AI assistants",
+  "repository": { "type": "git", "url": "git+https://github.com/123toto/ai-app-assistant.git", "directory": "packages/client-core" },
+  "homepage": "https://github.com/123toto/ai-app-assistant#readme",
+  "bugs": { "url": "https://github.com/123toto/ai-app-assistant/issues" },
+  "keywords": ["ai", "documentation", "assistant", "web-component", "angular"],
+  "publishConfig": { "access": "public" },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./angular": {
+      "types": "./dist/angular.d.ts",
+      "import": "./dist/angular.js"
+    },
+    "./web-component": {
+      "types": "./dist/web-component.d.ts",
+      "import": "./dist/web-component.js"
+    },
+    "./settings": {
+      "types": "./dist/settings.d.ts",
+      "import": "./dist/settings.js"
+    },
+    "./settings-web-component": {
+      "types": "./dist/settings-web-component.d.ts",
+      "import": "./dist/settings-web-component.js"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "ngc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "dev": "ngc -p tsconfig.json --watch --preserveWatchOutput",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@123toto/ai-app-assistant-contracts": "workspace:*"
+  },
+  "peerDependencies": {
+    "@angular/common": ">=19 <22",
+    "@angular/core": ">=19 <22",
+    "rxjs": "^7.8.0"
+  },
+  "peerDependenciesMeta": {
+    "@angular/common": {
+      "optional": true
+    },
+    "@angular/core": {
+      "optional": true
+    },
+    "rxjs": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@angular/common": "^20.0.0",
+    "@angular/compiler": "^20.0.0",
+    "@angular/compiler-cli": "^20.0.0",
+    "@angular/core": "^20.0.0",
+    "rxjs": "^7.8.0",
+    "happy-dom": "^18.0.0"
+  }
+}

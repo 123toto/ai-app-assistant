@@ -1,0 +1,23 @@
+{
+  "name": "ai-app-assistant",
+  "private": true,
+  "license": "MIT",
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "clean": "pnpm -r clean",
+    "dev": "pnpm --parallel --filter './packages/**' dev",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm --filter @123toto/ai-app-assistant-contracts build && pnpm --filter @123toto/ai-app-assistant-client build && pnpm --filter @123toto/ai-app-assistant-server build && pnpm -r typecheck",
+    "check": "pnpm typecheck && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}

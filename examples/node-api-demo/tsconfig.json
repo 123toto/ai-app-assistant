@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@123toto/ai-app-assistant-contracts": ["../../packages/contracts/dist/index.d.ts"],
+      "@123toto/ai-app-assistant-server": ["../../packages/server/dist/index.d.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

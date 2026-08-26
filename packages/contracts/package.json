@@ -1,0 +1,34 @@
+{
+  "name": "@123toto/ai-app-assistant-contracts",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "Shared transport contracts for AI App Assistant packages",
+  "repository": { "type": "git", "url": "git+https://github.com/123toto/ai-app-assistant.git", "directory": "packages/contracts" },
+  "homepage": "https://github.com/123toto/ai-app-assistant#readme",
+  "bugs": { "url": "https://github.com/123toto/ai-app-assistant/issues" },
+  "keywords": ["ai", "documentation", "contracts", "zod"],
+  "publishConfig": { "access": "public" },
+  "sideEffects": false,
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --out-dir dist",
+    "clean": "rm -rf dist",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --out-dir dist --watch",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.0.0"
+  }
+}

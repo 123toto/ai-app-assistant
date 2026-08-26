@@ -1,0 +1,15 @@
+node_modules/
+.npm-links/
+.pnpm-store/
+dist/
+coverage/
+artifacts/
+*.tsbuildinfo
+*.tgz
+*.log
+.env
+.env.*
+!.env.example
+.npmrc
+.DS_Store
+.idea/
