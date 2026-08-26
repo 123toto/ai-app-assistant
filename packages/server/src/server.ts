@@ -1,15 +1,15 @@
 import { createAiSdkGenerator, type AiSdkGeneratorOptions } from "./ai-sdk.js";
-import { createDocsAssistant, type DocsAssistant } from "./assistant.js";
+import { createAiAppAssistant, type AiAppAssistant } from "./assistant.js";
 import {
-  createAiDocsFetchHandlers,
-  type AiDocsFetchHandlerOptions,
-  type AiDocsFetchHandlers
+  createAiAppAssistantFetchHandlers,
+  type AiAppAssistantFetchHandlerOptions,
+  type AiAppAssistantFetchHandlers
 } from "./http.js";
-import type { AnswerGenerator, DocumentationSource, DocsAssistantOptions } from "./types.js";
+import type { AnswerGenerator, DocumentationSource, AiAppAssistantOptions } from "./types.js";
 
-type AssistantPolicies = NonNullable<DocsAssistantOptions["policies"]>;
+type AssistantPolicies = NonNullable<AiAppAssistantOptions["policies"]>;
 
-export interface CreateAiDocsServerOptions<TContext = undefined> {
+export interface CreateAiAppAssistantServerOptions<TContext = undefined> {
   /** A custom generator takes precedence over the provider:model shortcut. */
   generator?: AnswerGenerator;
   /** Provider-neutral model identifier, for example `mistral:mistral-small-latest`. */
@@ -20,42 +20,42 @@ export interface CreateAiDocsServerOptions<TContext = undefined> {
   maxRetries?: number;
   documents?: DocumentationSource[];
   policies?: AssistantPolicies;
-  http?: Omit<AiDocsFetchHandlerOptions<TContext>, "assistant">;
+  http?: Omit<AiAppAssistantFetchHandlerOptions<TContext>, "assistant">;
 }
 
-export interface AiDocsServer<TContext = undefined> {
-  assistant: DocsAssistant;
-  fetch: AiDocsFetchHandlers;
+export interface AiAppAssistantServer<TContext = undefined> {
+  assistant: AiAppAssistant;
+  fetch: AiAppAssistantFetchHandlers;
   /** Retained for consumers that want direct programmatic calls. */
-  options: Readonly<CreateAiDocsServerOptions<TContext>>;
+  options: Readonly<CreateAiAppAssistantServerOptions<TContext>>;
 }
 
 /**
  * Minimal framework-neutral server factory. Applications can start with a
  * model string and documents, then opt into auth, privacy and storage hooks.
  */
-export function createAiDocsServer<TContext = undefined>(
-  options: CreateAiDocsServerOptions<TContext>
-): AiDocsServer<TContext> {
+export function createAiAppAssistantServer<TContext = undefined>(
+  options: CreateAiAppAssistantServerOptions<TContext>
+): AiAppAssistantServer<TContext> {
   const generator = options.generator ?? createGenerator(options);
-  const assistant = createDocsAssistant({
+  const assistant = createAiAppAssistant({
     generator,
     ...(options.documents ? { documents: options.documents } : {}),
     ...(options.policies ? { policies: options.policies } : {})
   });
   return {
     assistant,
-    fetch: createAiDocsFetchHandlers({ assistant, ...options.http }),
+    fetch: createAiAppAssistantFetchHandlers({ assistant, ...options.http }),
     options: Object.freeze({ ...options })
   };
 }
 
 function createGenerator(options: Pick<
-  CreateAiDocsServerOptions,
+  CreateAiAppAssistantServerOptions,
   "model" | "apiKey" | "baseURL" | "timeoutMs" | "maxRetries"
 >): AnswerGenerator {
   if (!options.model?.trim()) {
-    throw new TypeError("createAiDocsServer requires either generator or model");
+    throw new TypeError("createAiAppAssistantServer requires either generator or model");
   }
   const generatorOptions: AiSdkGeneratorOptions = {
     model: options.model,

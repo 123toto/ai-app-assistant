@@ -1,61 +1,61 @@
 export {
-  createDocsAssistant,
-  type DocsAssistant,
-  type DocsAssistantStreamEvent
+  createAiAppAssistant,
+  type AiAppAssistant,
+  type AiAppAssistantStreamEvent
 } from "./assistant.js";
 export {
-  AiDocsRequestError,
-  createAiDocsFetchHandlers,
-  type AiDocsFetchHandlerOptions,
-  type AiDocsFetchHandlers
+  AiAppAssistantRequestError,
+  createAiAppAssistantFetchHandlers,
+  type AiAppAssistantFetchHandlerOptions,
+  type AiAppAssistantFetchHandlers
 } from "./http.js";
 export {
-  createAiDocsNodeHttpListener,
-  type AiDocsNodeHttpHandler,
-  type AiDocsNodeHttpAdapterOptions,
-  type AiDocsNodeHttpListener
+  createAiAppAssistantNodeHttpListener,
+  type AiAppAssistantNodeHttpHandler,
+  type AiAppAssistantNodeHttpAdapterOptions,
+  type AiAppAssistantNodeHttpListener
 } from "./node-http.js";
 export {
-  createAiDocsServer,
-  type AiDocsServer,
-  type CreateAiDocsServerOptions
+  createAiAppAssistantServer,
+  type AiAppAssistantServer,
+  type CreateAiAppAssistantServerOptions
 } from "./server.js";
 export {
-  createManagedAiDocsRuntime,
-  type CreateManagedAiDocsRuntimeOptions,
-  type ManagedAiDocsRuntime
+  createManagedAiAppAssistantRuntime,
+  type CreateManagedAiAppAssistantRuntimeOptions,
+  type ManagedAiAppAssistantRuntime
 } from "./managed-runtime.js";
 export {
-  createManagedAiDocsServer,
-  type AiDocsManagedConfigurationSetup,
-  type AiDocsManagedStorage,
-  type CreateManagedAiDocsServerOptions,
-  type ManagedAiDocsServer
+  createManagedAiAppAssistantServer,
+  type AiAppAssistantManagedConfigurationSetup,
+  type AiAppAssistantManagedStorage,
+  type CreateManagedAiAppAssistantServerOptions,
+  type ManagedAiAppAssistantServer
 } from "./managed-server.js";
 export {
-  createAiDocsDeploymentDefaults,
-  type AiDocsDeploymentDefaults,
-  type AiDocsDeploymentDefaultsOptions
+  createAiAppAssistantDeploymentDefaults,
+  type AiAppAssistantDeploymentDefaults,
+  type AiAppAssistantDeploymentDefaultsOptions
 } from "./deployment-defaults.js";
 export {
-  createManagedAiDocsFetchHandlers,
-  type ManagedAiDocsFetchHandlerOptions,
-  type ManagedAiDocsFetchHandlers
+  createManagedAiAppAssistantFetchHandlers,
+  type ManagedAiAppAssistantFetchHandlerOptions,
+  type ManagedAiAppAssistantFetchHandlers
 } from "./managed-http.js";
 export {
   filterOpenApiContext,
   type FilterOpenApiContextOptions
 } from "./openapi-context.js";
 export {
-  AiDocsConfigurationManager,
-  AiDocsManagementError,
-  createPollingAiDocsConfigurationSynchronizer,
-  type AiDocsConfigurationChangeEvent,
-  type AiDocsConfigurationManagerOptions,
-  type AiDocsConfigurationSaveResult,
-  type AiDocsConfigurationSynchronizer,
-  type AiDocsManagementErrorCode,
-  type AiDocsRuntimeIdentity
+  AiAppAssistantConfigurationManager,
+  AiAppAssistantManagementError,
+  createPollingAiAppAssistantConfigurationSynchronizer,
+  type AiAppAssistantConfigurationChangeEvent,
+  type AiAppAssistantConfigurationManagerOptions,
+  type AiAppAssistantConfigurationSaveResult,
+  type AiAppAssistantConfigurationSynchronizer,
+  type AiAppAssistantManagementErrorCode,
+  type AiAppAssistantRuntimeIdentity
 } from "./management.js";
 export {
   AiSdkConfigurationError,
@@ -69,15 +69,15 @@ export {
   type AiSdkGeneratorOptions
 } from "./ai-sdk.js";
 export {
-  createAiDocsFailureEvent,
-  createMemoryAiDocsTelemetryStore,
-  createRedisAiDocsTelemetryStore,
-  type AiDocsGenerationEvent,
-  type AiDocsGenerationOperation,
-  type AiDocsRecentFailure,
-  type AiDocsRedisTelemetryClient,
-  type AiDocsTelemetryStore,
-  type AiDocsTelemetrySummary
+  createAiAppAssistantFailureEvent,
+  createMemoryAiAppAssistantTelemetryStore,
+  createRedisAiAppAssistantTelemetryStore,
+  type AiAppAssistantGenerationEvent,
+  type AiAppAssistantGenerationOperation,
+  type AiAppAssistantRecentFailure,
+  type AiAppAssistantRedisTelemetryClient,
+  type AiAppAssistantTelemetryStore,
+  type AiAppAssistantTelemetrySummary
 } from "./telemetry.js";
 export {
   AiModelDiscoveryError,
@@ -90,33 +90,33 @@ export {
 } from "./provider-catalog.js";
 export {
   createAes256GcmSecretProtector,
-  AiDocsConfigurationConflictError,
-  createAiDocsConfigurationRepository,
+  AiAppAssistantConfigurationConflictError,
+  createAiAppAssistantConfigurationRepository,
   createDisabledSecretProtector,
-  createMemoryAiDocsStore,
-  createRedisAiDocsStore,
-  validateAndSaveAiDocsConfiguration,
-  type AiDocsAccessRule,
-  type AiDocsConfiguration,
-  type AiDocsConfigurationActor,
-  type AiDocsConfigurationAdministration,
-  type AiDocsConfigurationAuditChange,
-  type AiDocsConfigurationAuditEntry,
-  type AiDocsConfigurationAuditField,
-  type AiDocsConfigurationRepository,
-  type AiDocsConfigurationView,
-  type AiDocsKeyValueStore,
-  type AiDocsRedisClient,
-  type AiDocsSecretProtector,
-  type CreateAiDocsConfigurationRepositoryOptions
+  createMemoryAiAppAssistantStore,
+  createRedisAiAppAssistantStore,
+  validateAndSaveAiAppAssistantConfiguration,
+  type AiAppAssistantAccessRule,
+  type AiAppAssistantConfiguration,
+  type AiAppAssistantConfigurationActor,
+  type AiAppAssistantConfigurationAdministration,
+  type AiAppAssistantConfigurationAuditChange,
+  type AiAppAssistantConfigurationAuditEntry,
+  type AiAppAssistantConfigurationAuditField,
+  type AiAppAssistantConfigurationRepository,
+  type AiAppAssistantConfigurationView,
+  type AiAppAssistantKeyValueStore,
+  type AiAppAssistantRedisClient,
+  type AiAppAssistantSecretProtector,
+  type CreateAiAppAssistantConfigurationRepositoryOptions
 } from "./configuration.js";
 export {
-  createMemoryAiDocsQuotaStore,
-  createRedisAiDocsQuotaStore,
-  type AiDocsQuotaPolicy,
-  type AiDocsQuotaResult,
-  type AiDocsQuotaStore,
-  type AiDocsRedisQuotaClient
+  createMemoryAiAppAssistantQuotaStore,
+  createRedisAiAppAssistantQuotaStore,
+  type AiAppAssistantQuotaPolicy,
+  type AiAppAssistantQuotaResult,
+  type AiAppAssistantQuotaStore,
+  type AiAppAssistantRedisQuotaClient
 } from "./quota.js";
 export {
   createOpenAiCompatibleGenerator,
@@ -124,42 +124,42 @@ export {
 } from "./openai-compatible.js";
 export {
   PROTOCOL_VERSION,
-  aiDocsAccessRuleSchema,
-  aiDocsConfigurationInputSchema,
-  aiDocsConfigurationOptionsSchema,
-  aiDocsConfigurationSaveResultSchema,
-  aiDocsConnectionResultSchema,
-  aiDocsConnectionTestInputSchema,
-  aiDocsCredentialsSchema,
-  aiDocsManagedConfigurationViewSchema,
-  aiDocsModelInfoSchema,
-  aiDocsProviderSchema,
-  aiDocsProviderInfoSchema,
-  askDocumentationRequestSchema,
-  askDocumentationResponseSchema,
-  askDocumentationStreamEventSchema,
-  type AskDocumentationRequest,
-  type AskDocumentationResponse,
-  type AskDocumentationStreamEvent,
-  type AiDocsConfigurationFieldSource,
-  type AiDocsConfigurationInput,
-  type AiDocsConfigurationOptions,
-  type AiDocsConnectionResult,
-  type AiDocsConnectionTestInput,
-  type AiDocsCredentials,
-  type AiDocsManagedConfigurationView,
-  type AiDocsModelInfoContract,
-  type AiDocsProvider,
-  type AiDocsProviderInfoContract,
-  type AiDocsRuntimeConnection,
-  type AiDocsRuntimeConnectionStatus,
+  aiAppAssistantAccessRuleSchema,
+  aiAppAssistantConfigurationInputSchema,
+  aiAppAssistantConfigurationOptionsSchema,
+  aiAppAssistantConfigurationSaveResultSchema,
+  aiAppAssistantConnectionResultSchema,
+  aiAppAssistantConnectionTestInputSchema,
+  aiAppAssistantCredentialsSchema,
+  aiAppAssistantManagedConfigurationViewSchema,
+  aiAppAssistantModelInfoSchema,
+  aiAppAssistantProviderSchema,
+  aiAppAssistantProviderInfoSchema,
+  aiAppAssistantRequestSchema,
+  aiAppAssistantResponseSchema,
+  aiAppAssistantTransportEventSchema,
+  type AiAppAssistantRequest,
+  type AiAppAssistantResponse,
+  type AiAppAssistantTransportEvent,
+  type AiAppAssistantConfigurationFieldSource,
+  type AiAppAssistantConfigurationInput,
+  type AiAppAssistantConfigurationOptions,
+  type AiAppAssistantConnectionResult,
+  type AiAppAssistantConnectionTestInput,
+  type AiAppAssistantCredentials,
+  type AiAppAssistantManagedConfigurationView,
+  type AiAppAssistantModelInfoContract,
+  type AiAppAssistantProvider,
+  type AiAppAssistantProviderInfoContract,
+  type AiAppAssistantRuntimeConnection,
+  type AiAppAssistantRuntimeConnectionStatus,
   type EvidenceSource,
   type GeneratedAnswer
 } from "@123toto/ai-app-assistant-contracts";
 export type {
   AnswerGenerator,
   DocumentationSource,
-  DocsAssistantOptions,
+  AiAppAssistantOptions,
   EvidenceBundle,
   EvidenceItem,
   GenerationOptions,

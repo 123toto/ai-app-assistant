@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
-  createAiDocsFailureEvent,
-  createMemoryAiDocsTelemetryStore,
-  createRedisAiDocsTelemetryStore,
-  type AiDocsRedisTelemetryClient
+  createAiAppAssistantFailureEvent,
+  createMemoryAiAppAssistantTelemetryStore,
+  createRedisAiAppAssistantTelemetryStore,
+  type AiAppAssistantRedisTelemetryClient
 } from "./telemetry.js";
 
-describe("AI Docs telemetry", () => {
+describe("AI App Assistant telemetry", () => {
   it("aggregates usage without retaining prompts or users", async () => {
-    const store = createMemoryAiDocsTelemetryStore();
+    const store = createMemoryAiAppAssistantTelemetryStore();
     await store.record({
       outcome: "success",
       requestId: "request-1",
@@ -18,7 +18,7 @@ describe("AI Docs telemetry", () => {
       occurredAt: new Date().toISOString(),
       usage: { inputTokens: 100, outputTokens: 20, totalTokens: 120 }
     });
-    await store.record(createAiDocsFailureEvent({
+    await store.record(createAiAppAssistantFailureEvent({
       error: Object.assign(new Error("service unavailable"), { statusCode: 503 }),
       requestId: "request-2",
       operation: "answer",
@@ -41,15 +41,15 @@ describe("AI Docs telemetry", () => {
 
   it("persists aggregate and bounded failures through the Redis adapter", async () => {
     const client = new FakeRedisTelemetryClient();
-    const first = createRedisAiDocsTelemetryStore(client, { recentFailureLimit: 1 });
-    await first.record(createAiDocsFailureEvent({
+    const first = createRedisAiAppAssistantTelemetryStore(client, { recentFailureLimit: 1 });
+    await first.record(createAiAppAssistantFailureEvent({
       error: Object.assign(new Error("rate limited"), { statusCode: 429 }),
       requestId: "one",
       operation: "stream",
       model: "mistral:large",
       durationMs: 10
     }));
-    await first.record(createAiDocsFailureEvent({
+    await first.record(createAiAppAssistantFailureEvent({
       error: Object.assign(new Error("offline"), { code: "ECONNRESET" }),
       requestId: "two",
       operation: "stream",
@@ -57,13 +57,13 @@ describe("AI Docs telemetry", () => {
       durationMs: 20
     }));
 
-    const afterRestart = createRedisAiDocsTelemetryStore(client, { recentFailureLimit: 1 });
+    const afterRestart = createRedisAiAppAssistantTelemetryStore(client, { recentFailureLimit: 1 });
     expect(await afterRestart.summary()).toMatchObject({ requests: 2, failed: 2, durationMs: 30 });
     expect((await afterRestart.recentFailures(20)).map(({ requestId }) => requestId)).toEqual(["two"]);
   });
 });
 
-class FakeRedisTelemetryClient implements AiDocsRedisTelemetryClient {
+class FakeRedisTelemetryClient implements AiAppAssistantRedisTelemetryClient {
   readonly hashes = new Map<string, Record<string, number>>();
   readonly lists = new Map<string, string[]>();
 

@@ -1,22 +1,22 @@
 import {
-  aiDocsConfigurationInputSchema,
-  aiDocsConnectionTestInputSchema,
-  aiDocsCredentialsSchema,
-  askDocumentationRequestSchema
+  aiAppAssistantConfigurationInputSchema,
+  aiAppAssistantConnectionTestInputSchema,
+  aiAppAssistantCredentialsSchema,
+  aiAppAssistantRequestSchema
 } from "@123toto/ai-app-assistant-contracts";
 import { ZodError } from "zod";
-import type { ManagedAiDocsRuntime } from "./managed-runtime.js";
+import type { ManagedAiAppAssistantRuntime } from "./managed-runtime.js";
 import {
-  AiDocsManagementError,
-  type AiDocsRuntimeIdentity
+  AiAppAssistantManagementError,
+  type AiAppAssistantRuntimeIdentity
 } from "./management.js";
 import { normalizeAiSdkGenerationError } from "./ai-sdk.js";
 
-export interface ManagedAiDocsFetchHandlerOptions<
-  TIdentity extends AiDocsRuntimeIdentity,
+export interface ManagedAiAppAssistantFetchHandlerOptions<
+  TIdentity extends AiAppAssistantRuntimeIdentity,
   TNativeContext = undefined
 > {
-  runtime: ManagedAiDocsRuntime<TIdentity>;
+  runtime: ManagedAiAppAssistantRuntime<TIdentity>;
   /** Required by default so application endpoints fail closed. */
   resolveIdentity?: (request: Request, nativeContext: TNativeContext | undefined) => TIdentity | Promise<TIdentity>;
   /** Explicit opt-in for public prototypes. Never enable it on authenticated applications. */
@@ -31,17 +31,17 @@ export interface ManagedAiDocsFetchHandlerOptions<
   onError?: (error: unknown, request: Request, nativeContext: TNativeContext | undefined) => Response | Promise<Response>;
 }
 
-export interface ManagedAiDocsFetchHandlers<TNativeContext = undefined> {
+export interface ManagedAiAppAssistantFetchHandlers<TNativeContext = undefined> {
   handle(request: Request, nativeContext?: TNativeContext): Promise<Response>;
 }
 
 /** Complete framework-neutral chat and administration API. */
-export function createManagedAiDocsFetchHandlers<
-  TIdentity extends AiDocsRuntimeIdentity,
+export function createManagedAiAppAssistantFetchHandlers<
+  TIdentity extends AiAppAssistantRuntimeIdentity,
   TNativeContext = undefined
 >(
-  options: ManagedAiDocsFetchHandlerOptions<TIdentity, TNativeContext>
-): ManagedAiDocsFetchHandlers<TNativeContext> {
+  options: ManagedAiAppAssistantFetchHandlerOptions<TIdentity, TNativeContext>
+): ManagedAiAppAssistantFetchHandlers<TNativeContext> {
   // Identity and administration hooks deliberately fail closed. Public
   // prototypes must opt in explicitly through allowAnonymous.
   const identity = async (request: Request, nativeContext: TNativeContext | undefined): Promise<TIdentity> => {
@@ -49,11 +49,11 @@ export function createManagedAiDocsFetchHandlers<
     if (options.allowAnonymous) {
       return { id: "anonymous", label: "Anonymous", roles: [] } as unknown as TIdentity;
     }
-    throw new AiDocsManagementError(401, "unauthorized", "Authentication is required");
+    throw new AiAppAssistantManagementError(401, "unauthorized", "Authentication is required");
   };
   const admin = async (request: Request, resolved: TIdentity, nativeContext: TNativeContext | undefined): Promise<void> => {
     if (!options.authorizeAdministration) {
-      throw new AiDocsManagementError(403, "forbidden", "Administration access is not configured");
+      throw new AiAppAssistantManagementError(403, "forbidden", "Administration access is not configured");
     }
     await options.authorizeAdministration(resolved, request, nativeContext);
   };
@@ -71,13 +71,13 @@ export function createManagedAiDocsFetchHandlers<
           return json(await options.runtime.configuration.getAccess(currentIdentity));
         }
         if (request.method === "POST" && path.endsWith("/ask/stream")) {
-          const input = askDocumentationRequestSchema.parse(await readJson(request, options.maxBodyBytes));
+          const input = aiAppAssistantRequestSchema.parse(await readJson(request, options.maxBodyBytes));
           const generation = options.runtime.stream(input, currentIdentity, request.signal);
           const first = await generation.next();
           return streamResponse(generation, first, input.requestId);
         }
         if (request.method === "POST" && path.endsWith("/ask")) {
-          const input = askDocumentationRequestSchema.parse(await readJson(request, options.maxBodyBytes));
+          const input = aiAppAssistantRequestSchema.parse(await readJson(request, options.maxBodyBytes));
           return json(await options.runtime.answer(input, currentIdentity));
         }
 
@@ -112,22 +112,22 @@ export function createManagedAiDocsFetchHandlers<
           return json({ roles, users });
         }
         if (request.method === "POST" && path.endsWith("/models")) {
-          const input = aiDocsCredentialsSchema.parse(await readJson(request, options.maxBodyBytes));
+          const input = aiAppAssistantCredentialsSchema.parse(await readJson(request, options.maxBodyBytes));
           return json(await options.runtime.configuration.listModels(input));
         }
         if (request.method === "POST" && path.endsWith("/configuration/test")) {
-          const input = aiDocsConnectionTestInputSchema.parse(await readJson(request, options.maxBodyBytes));
+          const input = aiAppAssistantConnectionTestInputSchema.parse(await readJson(request, options.maxBodyBytes));
           return json(await options.runtime.configuration.testConnection(input));
         }
         if (request.method === "PUT" && path.endsWith("/configuration")) {
-          const input = aiDocsConfigurationInputSchema.parse(await readJson(request, options.maxBodyBytes));
+          const input = aiAppAssistantConfigurationInputSchema.parse(await readJson(request, options.maxBodyBytes));
           const { reloadRequired: _reloadRequired, ...result } = await options.runtime.configuration.save(input, currentIdentity);
           return json(result);
         }
         if (request.method === "DELETE" && path.endsWith("/configuration/api-key")) {
           return json(await options.runtime.configuration.revokeApiKey(currentIdentity));
         }
-        return json({ error: "not_found", message: "AI Docs endpoint not found" }, 404);
+        return json({ error: "not_found", message: "AI App Assistant endpoint not found" }, 404);
       } catch (error) {
         if (options.onError) return options.onError(error, request, nativeContext);
         return mapError(error);
@@ -140,11 +140,11 @@ export function createManagedAiDocsFetchHandlers<
 async function readJson(request: Request, maxBodyBytes = 8_600_000): Promise<unknown> {
   const declaredSize = Number(request.headers.get("content-length"));
   if (Number.isFinite(declaredSize) && declaredSize > maxBodyBytes) {
-    throw new AiDocsManagementError(413, "invalid_request", "Request body is too large");
+    throw new AiAppAssistantManagementError(413, "invalid_request", "Request body is too large");
   }
   const text = await request.text();
   if (new TextEncoder().encode(text).byteLength > maxBodyBytes) {
-    throw new AiDocsManagementError(413, "invalid_request", "Request body is too large");
+    throw new AiAppAssistantManagementError(413, "invalid_request", "Request body is too large");
   }
   return JSON.parse(text) as unknown;
 }
@@ -169,11 +169,11 @@ function streamResponse<T>(
         const failure = normalizeAiSdkGenerationError(error, 1);
         controller.enqueue(encoder.encode(`${JSON.stringify({
           type: "error",
-          message: error instanceof AiDocsManagementError
+          message: error instanceof AiAppAssistantManagementError
             ? error.message
             : "The assistant response could not be generated.",
-          retryable: error instanceof AiDocsManagementError ? false : failure.retryable,
-          ...(error instanceof AiDocsManagementError ? {} : {
+          retryable: error instanceof AiAppAssistantManagementError ? false : failure.retryable,
+          ...(error instanceof AiAppAssistantManagementError ? {} : {
             code: failure.code,
             requestId
           })
@@ -193,7 +193,7 @@ function streamResponse<T>(
 }
 
 function mapError(error: unknown): Response {
-  if (error instanceof AiDocsManagementError) {
+  if (error instanceof AiAppAssistantManagementError) {
     return json({ error: error.code, message: error.message, ...error.details }, error.status);
   }
   if (error instanceof ZodError || error instanceof SyntaxError) {

@@ -1,13 +1,13 @@
 import {
-  askDocumentationRequestSchema,
-  type AskDocumentationRequest,
-  type AskDocumentationResponse
+  aiAppAssistantRequestSchema,
+  type AiAppAssistantRequest,
+  type AiAppAssistantResponse
 } from "@123toto/ai-app-assistant-contracts";
 import { ZodError } from "zod";
-import type { DocsAssistant, DocsAssistantStreamEvent } from "./assistant.js";
+import type { AiAppAssistant, AiAppAssistantStreamEvent } from "./assistant.js";
 
-export interface AiDocsFetchHandlerOptions<TContext = undefined> {
-  assistant: DocsAssistant;
+export interface AiAppAssistantFetchHandlerOptions<TContext = undefined> {
+  assistant: AiAppAssistant;
   /** Resolves framework-specific authentication into an application context. */
   resolveContext?: (request: Request) => Promise<TContext> | TContext;
   /** Optional application authorization executed before assistant work. */
@@ -16,26 +16,26 @@ export interface AiDocsFetchHandlerOptions<TContext = undefined> {
   allowAnonymous?: boolean;
   /** Optional privacy/input policy applied after protocol validation. */
   transformRequest?: (
-    input: AskDocumentationRequest,
+    input: AiAppAssistantRequest,
     context: TContext
-  ) => Promise<AskDocumentationRequest> | AskDocumentationRequest;
+  ) => Promise<AiAppAssistantRequest> | AiAppAssistantRequest;
   /** Optional privacy/output policy applied before serialization. */
   transformResponse?: (
-    response: AskDocumentationResponse,
+    response: AiAppAssistantResponse,
     context: TContext
-  ) => Promise<AskDocumentationResponse> | AskDocumentationResponse;
+  ) => Promise<AiAppAssistantResponse> | AiAppAssistantResponse;
   /** Applies privacy rules to progressive text before it leaves the backend. */
   transformStreamEvent?: (
-    event: DocsAssistantStreamEvent,
+    event: AiAppAssistantStreamEvent,
     context: TContext
-  ) => Promise<DocsAssistantStreamEvent> | DocsAssistantStreamEvent;
+  ) => Promise<AiAppAssistantStreamEvent> | AiAppAssistantStreamEvent;
   /** Maximum HTTP request size. Defaults slightly above the protocol limit. */
   maxBodyBytes?: number;
   /** Maps application errors without coupling the library to one framework. */
   onError?: (error: unknown, request: Request) => Promise<Response> | Response;
 }
 
-export interface AiDocsFetchHandlers {
+export interface AiAppAssistantFetchHandlers {
   ask(request: Request): Promise<Response>;
   stream(request: Request): Promise<Response>;
   /** Dispatches to `stream` when the pathname ends in `/stream`, otherwise to `ask`. */
@@ -43,14 +43,14 @@ export interface AiDocsFetchHandlers {
 }
 
 /** Explicit safe HTTP error that host authorization hooks can throw. */
-export class AiDocsRequestError extends Error {
+export class AiAppAssistantRequestError extends Error {
   public constructor(
     readonly status: number,
     readonly code: string,
     message: string
   ) {
     super(message);
-    this.name = "AiDocsRequestError";
+    this.name = "AiAppAssistantRequestError";
   }
 }
 
@@ -58,18 +58,18 @@ export class AiDocsRequestError extends Error {
  * Creates Fetch API handlers usable by standards-based runtimes and thin
  * Express, Fastify, Nest, Next.js, Hono, Bun or serverless adapters.
  */
-export function createAiDocsFetchHandlers<TContext = undefined>(
-  options: AiDocsFetchHandlerOptions<TContext>
-): AiDocsFetchHandlers {
+export function createAiAppAssistantFetchHandlers<TContext = undefined>(
+  options: AiAppAssistantFetchHandlerOptions<TContext>
+): AiAppAssistantFetchHandlers {
   const prepare = async (request: Request): Promise<{
-    input: AskDocumentationRequest;
+    input: AiAppAssistantRequest;
     context: TContext;
   }> => {
     assertPost(request);
     const raw = await readJson(request, options.maxBodyBytes ?? 8_600_000);
-    const validated = askDocumentationRequestSchema.parse(raw);
+    const validated = aiAppAssistantRequestSchema.parse(raw);
     if (!options.resolveContext && !options.authorize && !options.allowAnonymous) {
-      throw new AiDocsRequestError(401, "unauthorized", "Authentication is required");
+      throw new AiAppAssistantRequestError(401, "unauthorized", "Authentication is required");
     }
     const context = options.resolveContext
       ? await options.resolveContext(request)
@@ -78,13 +78,13 @@ export function createAiDocsFetchHandlers<TContext = undefined>(
     const input = options.transformRequest
       ? await options.transformRequest(validated, context)
       : validated;
-    return { input: askDocumentationRequestSchema.parse(input), context };
+    return { input: aiAppAssistantRequestSchema.parse(input), context };
   };
 
   const present = async (
-    response: AskDocumentationResponse,
+    response: AiAppAssistantResponse,
     context: TContext
-  ): Promise<AskDocumentationResponse> => options.transformResponse
+  ): Promise<AiAppAssistantResponse> => options.transformResponse
     ? options.transformResponse(response, context)
     : response;
 
@@ -153,33 +153,33 @@ export function createAiDocsFetchHandlers<TContext = undefined>(
 
 function assertPost(request: Request): void {
   if (request.method !== "POST") {
-    throw new AiDocsRequestError(405, "method_not_allowed", "Only POST is supported");
+    throw new AiAppAssistantRequestError(405, "method_not_allowed", "Only POST is supported");
   }
 }
 
 async function readJson(request: Request, maxBodyBytes: number): Promise<unknown> {
   const contentLength = Number(request.headers.get("content-length"));
   if (Number.isFinite(contentLength) && contentLength > maxBodyBytes) {
-    throw new AiDocsRequestError(413, "request_too_large", "Request body is too large");
+    throw new AiAppAssistantRequestError(413, "request_too_large", "Request body is too large");
   }
   const text = await request.text();
   if (new TextEncoder().encode(text).byteLength > maxBodyBytes) {
-    throw new AiDocsRequestError(413, "request_too_large", "Request body is too large");
+    throw new AiAppAssistantRequestError(413, "request_too_large", "Request body is too large");
   }
   try {
     return JSON.parse(text) as unknown;
   } catch {
-    throw new AiDocsRequestError(400, "invalid_json", "Request body must be valid JSON");
+    throw new AiAppAssistantRequestError(400, "invalid_json", "Request body must be valid JSON");
   }
 }
 
 async function mapError(
   error: unknown,
   request: Request,
-  customMapper?: AiDocsFetchHandlerOptions<unknown>["onError"]
+  customMapper?: AiAppAssistantFetchHandlerOptions<unknown>["onError"]
 ): Promise<Response> {
   if (customMapper) return customMapper(error, request);
-  if (error instanceof AiDocsRequestError) {
+  if (error instanceof AiAppAssistantRequestError) {
     return jsonResponse({ error: error.code, message: error.message }, error.status);
   }
   if (error instanceof ZodError) {

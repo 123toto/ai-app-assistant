@@ -6,7 +6,7 @@ describe("settings web component SSR import", () => {
     vi.stubGlobal("customElements", undefined);
     try {
       const module = await import("./settings-web-component.js");
-      expect(module.AiDocsSettingsElement).toBeTypeOf("function");
+      expect(module.AiAppAssistantSettingsElement).toBeTypeOf("function");
     } finally {
       vi.unstubAllGlobals();
     }

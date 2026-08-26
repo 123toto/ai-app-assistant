@@ -1,29 +1,29 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  createManagedAiDocsExpressHandler,
-  type AiDocsExpressManagedServer,
-  type AiDocsExpressRequest,
-  type AiDocsExpressResponse
+  createManagedAiAppAssistantExpressHandler,
+  type AiAppAssistantExpressManagedServer,
+  type AiAppAssistantExpressRequest,
+  type AiAppAssistantExpressResponse
 } from "./express.js";
 
 describe("Express connector", () => {
   it("forwards parsed JSON, the original mounted URL and the native request", async () => {
-    const handle = vi.fn(async (request: Request, native?: AiDocsExpressRequest) =>
+    const handle = vi.fn(async (request: Request, native?: AiAppAssistantExpressRequest) =>
       new Response(JSON.stringify({ path: new URL(request.url).pathname, user: native?.user }), {
         headers: { "content-type": "application/json" }
       })
     );
-    const server = { fetch: { handle } } as unknown as AiDocsExpressManagedServer;
+    const server = { fetch: { handle } } as unknown as AiAppAssistantExpressManagedServer;
     const chunks: Uint8Array[] = [];
-    const response: AiDocsExpressResponse = {
+    const response: AiAppAssistantExpressResponse = {
       statusCode: 0,
       setHeader: vi.fn(),
       write(chunk) { chunks.push(chunk); return true; },
       end: vi.fn()
     };
-    const request: AiDocsExpressRequest = {
+    const request: AiAppAssistantExpressRequest = {
       method: "POST",
-      originalUrl: "/api/ai-docs/ask",
+      originalUrl: "/api/ai-app-assistant/ask",
       url: "/ask",
       protocol: "https",
       headers: { host: "app.example", "content-type": "application/json" },
@@ -31,11 +31,11 @@ describe("Express connector", () => {
       user: { id: "user-1" }
     };
 
-    await createManagedAiDocsExpressHandler(server)(request, response);
+    await createManagedAiAppAssistantExpressHandler(server)(request, response);
 
     const webRequest = handle.mock.calls[0]?.[0] as Request;
     expect(await webRequest.json()).toEqual({ question: "Explain" });
-    expect(new URL(webRequest.url).pathname).toBe("/api/ai-docs/ask");
+    expect(new URL(webRequest.url).pathname).toBe("/api/ai-app-assistant/ask");
     expect(new TextDecoder().decode(Buffer.concat(chunks))).toContain("user-1");
     expect(response.statusCode).toBe(200);
   });
@@ -43,16 +43,16 @@ describe("Express connector", () => {
   it("can pass unknown routes to the next Express handler", async () => {
     const server = {
       fetch: { handle: vi.fn(async () => new Response(null, { status: 404 })) }
-    } as unknown as AiDocsExpressManagedServer;
+    } as unknown as AiAppAssistantExpressManagedServer;
     const next = vi.fn();
     const response = {
       statusCode: 0,
       setHeader: vi.fn(),
       write: vi.fn(() => true),
       end: vi.fn()
-    } satisfies AiDocsExpressResponse;
+    } satisfies AiAppAssistantExpressResponse;
 
-    await createManagedAiDocsExpressHandler(server, { fallthrough: true })(
+    await createManagedAiAppAssistantExpressHandler(server, { fallthrough: true })(
       { method: "GET", url: "/unknown", headers: {} },
       response,
       next

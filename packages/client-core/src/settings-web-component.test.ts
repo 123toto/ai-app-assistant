@@ -1,13 +1,13 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AiDocsSettingsElement } from "./settings-web-component.js";
+import { AiAppAssistantSettingsElement } from "./settings-web-component.js";
 
 afterEach(() => {
   document.body.innerHTML = "";
   vi.unstubAllGlobals();
 });
 
-describe("AiDocsSettingsElement", () => {
+describe("AiAppAssistantSettingsElement", () => {
   it("renders a complete optional settings screen from the standard API", async () => {
     const fetch = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
@@ -21,8 +21,8 @@ describe("AiDocsSettingsElement", () => {
       return new Response(JSON.stringify(value), { status: 200 });
     });
     vi.stubGlobal("fetch", fetch);
-    const element = document.createElement("ai-docs-settings") as AiDocsSettingsElement;
-    element.setAttribute("endpoint", "/api/ai-docs");
+    const element = document.createElement("ai-app-assistant-settings") as AiAppAssistantSettingsElement;
+    element.setAttribute("endpoint", "/api/ai-app-assistant");
     element.setAttribute("open", "");
     document.body.append(element);
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -46,8 +46,8 @@ describe("AiDocsSettingsElement", () => {
             : { roles: [], users: [] };
       return new Response(JSON.stringify(value), { status: 200 });
     }));
-    const element = document.createElement("ai-docs-settings") as AiDocsSettingsElement;
-    element.setAttribute("endpoint", "/api/ai-docs");
+    const element = document.createElement("ai-app-assistant-settings") as AiAppAssistantSettingsElement;
+    element.setAttribute("endpoint", "/api/ai-app-assistant");
     element.setAttribute("open", "");
     document.body.append(element);
     await tick();
@@ -82,8 +82,8 @@ describe("AiDocsSettingsElement", () => {
           : { roles: [], users: [] };
       return new Response(JSON.stringify(value), { status: 200 });
     }));
-    const element = document.createElement("ai-docs-settings") as AiDocsSettingsElement;
-    element.setAttribute("endpoint", "/api/ai-docs");
+    const element = document.createElement("ai-app-assistant-settings") as AiAppAssistantSettingsElement;
+    element.setAttribute("endpoint", "/api/ai-app-assistant");
     element.setAttribute("open", "");
     document.body.append(element);
     await tick();
@@ -104,8 +104,8 @@ describe("AiDocsSettingsElement", () => {
           : { roles: [], users: [] };
       return new Response(JSON.stringify(value), { status: 200 });
     }));
-    const element = document.createElement("ai-docs-settings") as AiDocsSettingsElement;
-    element.setAttribute("endpoint", "/api/ai-docs");
+    const element = document.createElement("ai-app-assistant-settings") as AiAppAssistantSettingsElement;
+    element.setAttribute("endpoint", "/api/ai-app-assistant");
     element.setAttribute("open", "");
     document.body.append(element);
     await tick();

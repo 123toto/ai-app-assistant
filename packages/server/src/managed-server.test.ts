@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  createAiDocsConfigurationRepository,
-  createMemoryAiDocsStore
+  createAiAppAssistantConfigurationRepository,
+  createMemoryAiAppAssistantStore
 } from "./configuration.js";
-import { createManagedAiDocsServer } from "./managed-server.js";
+import { createManagedAiAppAssistantServer } from "./managed-server.js";
 import type { AnswerGenerator, EvidenceBundle } from "./types.js";
 
-describe("createManagedAiDocsServer", () => {
+describe("createManagedAiAppAssistantServer", () => {
   it("assembles the managed API and accepts documentation after bootstrap", async () => {
     let lastBundle: EvidenceBundle | undefined;
     const generator: AnswerGenerator = {
@@ -20,10 +20,10 @@ describe("createManagedAiDocsServer", () => {
         };
       }
     };
-    const server = createManagedAiDocsServer({
+    const server = createManagedAiAppAssistantServer({
       configuration: {
-        repository: createAiDocsConfigurationRepository({
-          store: createMemoryAiDocsStore(),
+        repository: createAiAppAssistantConfigurationRepository({
+          store: createMemoryAiAppAssistantStore(),
           secretProtector: { protect: String, unprotect: String }
         }),
         defaultConfiguration: {
@@ -42,11 +42,11 @@ describe("createManagedAiDocsServer", () => {
 
     await server.setDocuments([{ id: "guide", title: "Guide", content: "Business guide" }]);
     await server.initialize();
-    const response = await server.fetch.handle(new Request("http://local/ai-docs/ask", {
+    const response = await server.fetch.handle(new Request("http://local/ai-app-assistant/ask", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        protocolVersion: "3",
+        protocolVersion: "4",
         requestId: "request-1",
         html: "<main>Page</main>",
         question: "Explain",
@@ -60,13 +60,13 @@ describe("createManagedAiDocsServer", () => {
   });
 
   it("forwards the framework-native context to identity hooks", async () => {
-    const server = createManagedAiDocsServer<
+    const server = createManagedAiAppAssistantServer<
       { id: string; label: string },
       { userId: string }
     >({
       configuration: {
-        repository: createAiDocsConfigurationRepository({
-          store: createMemoryAiDocsStore(),
+        repository: createAiAppAssistantConfigurationRepository({
+          store: createMemoryAiAppAssistantStore(),
           secretProtector: { protect: String, unprotect: String }
         }),
         defaultConfiguration: { provider: "ollama", model: "test", access: { mode: "all" } },
@@ -87,7 +87,7 @@ describe("createManagedAiDocsServer", () => {
     await server.initialize();
 
     const response = await server.fetch.handle(
-      new Request("http://local/ai-docs/access"),
+      new Request("http://local/ai-app-assistant/access"),
       { userId: "native-user" }
     );
     expect(response.status).toBe(200);

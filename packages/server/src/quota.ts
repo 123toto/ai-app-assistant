@@ -1,11 +1,11 @@
 import { createHash } from "node:crypto";
 
-export interface AiDocsQuotaPolicy {
+export interface AiAppAssistantQuotaPolicy {
   maxRequests: number;
   windowSeconds: number;
 }
 
-export interface AiDocsQuotaResult {
+export interface AiAppAssistantQuotaResult {
   allowed: boolean;
   remaining: number;
   retryAfterSeconds: number;
@@ -13,12 +13,12 @@ export interface AiDocsQuotaResult {
 }
 
 /** Atomic quota contract implemented by shared or local stores. */
-export interface AiDocsQuotaStore {
-  consume(subject: string, policy: AiDocsQuotaPolicy): Promise<AiDocsQuotaResult>;
+export interface AiAppAssistantQuotaStore {
+  consume(subject: string, policy: AiAppAssistantQuotaPolicy): Promise<AiAppAssistantQuotaResult>;
 }
 
 /** Single-process implementation intended for tests and local development. */
-export function createMemoryAiDocsQuotaStore(): AiDocsQuotaStore {
+export function createMemoryAiAppAssistantQuotaStore(): AiAppAssistantQuotaStore {
   const counters = new Map<string, { count: number; resetAt: number }>();
   return {
     async consume(subject, policy) {
@@ -37,7 +37,7 @@ export function createMemoryAiDocsQuotaStore(): AiDocsQuotaStore {
 }
 
 /** Minimal ioredis-compatible shape needed for one atomic Lua operation. */
-export interface AiDocsRedisQuotaClient {
+export interface AiAppAssistantRedisQuotaClient {
   eval(script: string, numberOfKeys: number, ...args: Array<string | number>): Promise<unknown>;
 }
 
@@ -45,11 +45,11 @@ export interface AiDocsRedisQuotaClient {
  * Redis quota with one atomic increment/expiry operation. Subject identifiers
  * are SHA-256 fingerprints, never readable user IDs.
  */
-export function createRedisAiDocsQuotaStore(
-  client: AiDocsRedisQuotaClient,
+export function createRedisAiAppAssistantQuotaStore(
+  client: AiAppAssistantRedisQuotaClient,
   options?: { prefix?: string }
-): AiDocsQuotaStore {
-  const prefix = options?.prefix ?? "ai-docs:quota:";
+): AiAppAssistantQuotaStore {
+  const prefix = options?.prefix ?? "ai-app-assistant:quota:";
   return {
     async consume(subject, policy) {
       const normalized = normalizePolicy(policy);
@@ -81,7 +81,7 @@ const REDIS_QUOTA_SCRIPT = [
   "return {count, ttl}"
 ].join("\n");
 
-function normalizePolicy(policy: AiDocsQuotaPolicy): AiDocsQuotaPolicy {
+function normalizePolicy(policy: AiAppAssistantQuotaPolicy): AiAppAssistantQuotaPolicy {
   if (!Number.isInteger(policy.maxRequests) || policy.maxRequests < 1) {
     throw new TypeError("maxRequests must be a positive integer");
   }
@@ -102,7 +102,7 @@ function quotaResult(
   resetAt: number,
   maxRequests: number,
   now: number
-): AiDocsQuotaResult {
+): AiAppAssistantQuotaResult {
   return {
     allowed: count <= maxRequests,
     remaining: Math.max(0, maxRequests - count),

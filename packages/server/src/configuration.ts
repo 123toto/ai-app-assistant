@@ -7,18 +7,18 @@ import {
 import type { BuiltInProvider } from "./provider-catalog.js";
 
 /** Generic access rule; host applications map their own roles and user IDs. */
-export type AiDocsAccessRule =
+export type AiAppAssistantAccessRule =
   | { mode: "all" }
   | { mode: "roles"; roles: string[] }
   | { mode: "users"; userIds: string[] };
 
 /** Stable identity used for ownership and audit without coupling the library to a user directory. */
-export interface AiDocsConfigurationActor {
+export interface AiAppAssistantConfigurationActor {
   id: string;
   label: string;
 }
 
-export type AiDocsConfigurationAuditField =
+export type AiAppAssistantConfigurationAuditField =
   | "provider"
   | "apiKey"
   | "model"
@@ -28,54 +28,54 @@ export type AiDocsConfigurationAuditField =
   | "modelChangePolicy";
 
 /** One safe configuration change. API key values must never be placed in from/to. */
-export interface AiDocsConfigurationAuditChange {
-  field: AiDocsConfigurationAuditField;
+export interface AiAppAssistantConfigurationAuditChange {
+  field: AiAppAssistantConfigurationAuditField;
   from?: string;
   to?: string;
 }
 
-export interface AiDocsConfigurationAuditEntry {
+export interface AiAppAssistantConfigurationAuditEntry {
   id: string;
-  actor: AiDocsConfigurationActor;
+  actor: AiAppAssistantConfigurationActor;
   changedAt: string;
-  changes: AiDocsConfigurationAuditChange[];
+  changes: AiAppAssistantConfigurationAuditChange[];
 }
 
 /** Ownership and persisted audit metadata managed by the host application's authenticated backend. */
-export interface AiDocsConfigurationAdministration {
-  keyCreatedBy?: AiDocsConfigurationActor;
+export interface AiAppAssistantConfigurationAdministration {
+  keyCreatedBy?: AiAppAssistantConfigurationActor;
   keyCreatedAt?: string;
-  modelUpdatedBy?: AiDocsConfigurationActor;
+  modelUpdatedBy?: AiAppAssistantConfigurationActor;
   modelUpdatedAt?: string;
   allowModelChangesByOthers: boolean;
-  history: AiDocsConfigurationAuditEntry[];
+  history: AiAppAssistantConfigurationAuditEntry[];
 }
 
 /** Provider configuration owned by the library and persisted by an adapter. */
-export interface AiDocsConfiguration {
+export interface AiAppAssistantConfiguration {
   provider: BuiltInProvider;
   model: string;
   /** Whether provider fields override deployment defaults or merely accompany stored policies. */
   connectionSource?: "environment" | "override";
   apiKey?: string;
   baseURL?: string;
-  access: AiDocsAccessRule;
+  access: AiAppAssistantAccessRule;
   quota?: {
     maxRequests: number;
     windowSeconds: number;
   };
   /** Maximum number of user questions kept in one assistant conversation. */
   maxConversationTurns?: number;
-  administration?: AiDocsConfigurationAdministration;
+  administration?: AiAppAssistantConfigurationAdministration;
 }
 
 /** Safe representation returned to a frontend; it never contains the secret. */
-export type AiDocsConfigurationView = Omit<AiDocsConfiguration, "apiKey"> & {
+export type AiAppAssistantConfigurationView = Omit<AiAppAssistantConfiguration, "apiKey"> & {
   apiKeyConfigured: boolean;
 };
 
 /** Minimal persistence contract supported by Redis, databases or secret stores. */
-export interface AiDocsKeyValueStore {
+export interface AiAppAssistantKeyValueStore {
   get(key: string): Promise<string | null | undefined>;
   set(key: string, value: string): Promise<void>;
   delete(key: string): Promise<void>;
@@ -84,33 +84,33 @@ export interface AiDocsKeyValueStore {
 }
 
 /** Secret protection is explicit so plaintext keys can never be persisted. */
-export interface AiDocsSecretProtector {
+export interface AiAppAssistantSecretProtector {
   protect(secret: string): Promise<string> | string;
   unprotect(protectedSecret: string): Promise<string> | string;
 }
 
-export interface AiDocsConfigurationRepository {
-  load(): Promise<AiDocsConfiguration | undefined>;
-  loadView(): Promise<AiDocsConfigurationView | undefined>;
-  save(configuration: AiDocsConfiguration): Promise<AiDocsConfigurationView>;
+export interface AiAppAssistantConfigurationRepository {
+  load(): Promise<AiAppAssistantConfiguration | undefined>;
+  loadView(): Promise<AiAppAssistantConfigurationView | undefined>;
+  save(configuration: AiAppAssistantConfiguration): Promise<AiAppAssistantConfigurationView>;
   /** Atomic when the underlying key/value store supports compare-and-set. */
   mutate?(
-    update: (current: AiDocsConfiguration | undefined) => AiDocsConfiguration | Promise<AiDocsConfiguration>
-  ): Promise<AiDocsConfigurationView>;
+    update: (current: AiAppAssistantConfiguration | undefined) => AiAppAssistantConfiguration | Promise<AiAppAssistantConfiguration>
+  ): Promise<AiAppAssistantConfigurationView>;
   clear(): Promise<void>;
 }
 
-export interface CreateAiDocsConfigurationRepositoryOptions {
-  store: AiDocsKeyValueStore;
-  secretProtector: AiDocsSecretProtector;
+export interface CreateAiAppAssistantConfigurationRepositoryOptions {
+  store: AiAppAssistantKeyValueStore;
+  secretProtector: AiAppAssistantSecretProtector;
   /** Allows several applications or environments to share one storage system. */
   key?: string;
 }
 
-export class AiDocsConfigurationConflictError extends Error {
+export class AiAppAssistantConfigurationConflictError extends Error {
   public constructor() {
-    super("AI Docs configuration changed concurrently; retry the operation");
-    this.name = "AiDocsConfigurationConflictError";
+    super("AI App Assistant configuration changed concurrently; retry the operation");
+    this.name = "AiAppAssistantConfigurationConflictError";
   }
 }
 
@@ -160,12 +160,12 @@ const persistedConfigurationSchema = z.object({
 });
 
 /** Creates a repository that validates and encrypts configuration data. */
-export function createAiDocsConfigurationRepository(
-  options: CreateAiDocsConfigurationRepositoryOptions
-): AiDocsConfigurationRepository {
-  const key = options.key?.trim() || "ai-docs:configuration";
+export function createAiAppAssistantConfigurationRepository(
+  options: CreateAiAppAssistantConfigurationRepositoryOptions
+): AiAppAssistantConfigurationRepository {
+  const key = options.key?.trim() || "ai-app-assistant:configuration";
 
-  const deserialize = async (serialized: string | null | undefined): Promise<AiDocsConfiguration | undefined> => {
+  const deserialize = async (serialized: string | null | undefined): Promise<AiAppAssistantConfiguration | undefined> => {
     if (!serialized) return undefined;
     const stored = persistedConfigurationSchema.parse(JSON.parse(serialized) as unknown);
     const apiKey = stored.protectedApiKey
@@ -184,10 +184,10 @@ export function createAiDocsConfigurationRepository(
     };
   };
 
-  const load = async (): Promise<AiDocsConfiguration | undefined> => deserialize(await options.store.get(key));
+  const load = async (): Promise<AiAppAssistantConfiguration | undefined> => deserialize(await options.store.get(key));
 
-  const serialize = async (configuration: AiDocsConfiguration): Promise<{
-    normalized: AiDocsConfiguration;
+  const serialize = async (configuration: AiAppAssistantConfiguration): Promise<{
+    normalized: AiAppAssistantConfiguration;
     serialized: string;
   }> => {
     const normalized = normalizeConfiguration(configuration);
@@ -233,7 +233,7 @@ export function createAiDocsConfigurationRepository(
           return toConfigurationView(normalized);
         }
       }
-      throw new AiDocsConfigurationConflictError();
+      throw new AiAppAssistantConfigurationConflictError();
     },
     async clear() {
       await options.store.delete(key);
@@ -245,14 +245,14 @@ export function createAiDocsConfigurationRepository(
  * Tests the exact model configuration and persists it only after a successful
  * structured-output response.
  */
-export async function validateAndSaveAiDocsConfiguration(
-  repository: AiDocsConfigurationRepository,
-  configuration: AiDocsConfiguration,
+export async function validateAndSaveAiAppAssistantConfiguration(
+  repository: AiAppAssistantConfigurationRepository,
+  configuration: AiAppAssistantConfiguration,
   options?: { timeoutMs?: number }
 ): Promise<{
   saved: boolean;
   connection: AiSdkConnectionTestResult;
-  configuration?: AiDocsConfigurationView;
+  configuration?: AiAppAssistantConfigurationView;
 }> {
   const normalized = normalizeConfiguration(configuration);
   const connection = await testAiSdkConnection({
@@ -273,12 +273,12 @@ export async function validateAndSaveAiDocsConfiguration(
  * AES-256-GCM protector for applications that keep configuration outside a
  * dedicated secret manager. The key must be a random 32-byte base64 value.
  */
-export function createAes256GcmSecretProtector(base64Key: string): AiDocsSecretProtector {
+export function createAes256GcmSecretProtector(base64Key: string): AiAppAssistantSecretProtector {
   const key = Buffer.from(base64Key.trim(), "base64");
   if (key.length !== 32) {
     throw new TypeError("The secret protection key must contain exactly 32 base64-encoded bytes");
   }
-  const additionalData = Buffer.from("ai-docs-configuration:v1", "utf8");
+  const additionalData = Buffer.from("ai-app-assistant-configuration:v1", "utf8");
 
   return {
     protect(secret) {
@@ -308,7 +308,7 @@ export function createAes256GcmSecretProtector(base64Key: string): AiDocsSecretP
  * Allows environment-only configurations while failing closed if a caller
  * attempts to persist a secret without configuring encryption.
  */
-export function createDisabledSecretProtector(): AiDocsSecretProtector {
+export function createDisabledSecretProtector(): AiAppAssistantSecretProtector {
   const unavailable = (): never => {
     throw new Error("Secret persistence requires a configured secret protector");
   };
@@ -316,7 +316,7 @@ export function createDisabledSecretProtector(): AiDocsSecretProtector {
 }
 
 /** Lightweight local store useful for tests and single-process prototypes. */
-export function createMemoryAiDocsStore(): AiDocsKeyValueStore {
+export function createMemoryAiAppAssistantStore(): AiAppAssistantKeyValueStore {
   const values = new Map<string, string>();
   return {
     async get(key) { return values.get(key); },
@@ -332,7 +332,7 @@ export function createMemoryAiDocsStore(): AiDocsKeyValueStore {
 }
 
 /** Minimal Redis shape; consumers can pass an existing ioredis-like client. */
-export interface AiDocsRedisClient {
+export interface AiAppAssistantRedisClient {
   get(key: string): Promise<string | null>;
   set(key: string, value: string): Promise<unknown>;
   del(key: string): Promise<number>;
@@ -340,11 +340,11 @@ export interface AiDocsRedisClient {
 }
 
 /** Reuses the host application's Redis connection without adding a dependency. */
-export function createRedisAiDocsStore(
-  client: AiDocsRedisClient,
+export function createRedisAiAppAssistantStore(
+  client: AiAppAssistantRedisClient,
   options?: { prefix?: string }
-): AiDocsKeyValueStore {
-  const prefix = options?.prefix ?? "ai-docs:";
+): AiAppAssistantKeyValueStore {
+  const prefix = options?.prefix ?? "ai-app-assistant:";
   const namespaced = (key: string) => `${prefix}${key}`;
   return {
     get: (key) => client.get(namespaced(key)),
@@ -359,7 +359,7 @@ export function createRedisAiDocsStore(
   };
 }
 
-function normalizeConfiguration(configuration: AiDocsConfiguration): AiDocsConfiguration {
+function normalizeConfiguration(configuration: AiAppAssistantConfiguration): AiAppAssistantConfiguration {
   const parsed = persistedConfigurationSchema.omit({ version: true, protectedApiKey: true }).extend({
     apiKey: z.string().min(1).optional()
   }).parse({
@@ -397,7 +397,7 @@ const COMPARE_AND_SET_SCRIPT = `
 
 function normalizeAdministration(
   administration: z.infer<typeof administrationSchema>
-): AiDocsConfigurationAdministration {
+): AiAppAssistantConfigurationAdministration {
   return {
     ...(administration.keyCreatedBy ? { keyCreatedBy: administration.keyCreatedBy } : {}),
     ...(administration.keyCreatedAt ? { keyCreatedAt: administration.keyCreatedAt } : {}),
@@ -417,7 +417,7 @@ function normalizeAdministration(
   };
 }
 
-function toConfigurationView(configuration: AiDocsConfiguration): AiDocsConfigurationView {
+function toConfigurationView(configuration: AiAppAssistantConfiguration): AiAppAssistantConfigurationView {
   const { apiKey, ...view } = configuration;
   return { ...view, apiKeyConfigured: Boolean(apiKey) };
 }

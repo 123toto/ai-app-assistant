@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createDocsAssistant } from "./assistant.js";
+import { createAiAppAssistant } from "./assistant.js";
 import type { AnswerGenerator, EvidenceBundle } from "./types.js";
 
 function request(overrides: Record<string, unknown> = {}) {
   return {
-    protocolVersion: "3" as const,
+    protocolVersion: "4" as const,
     requestId: "request-1",
     html: "<html><body><h1>Order 42</h1><button>Approve</button></body></html>",
     htmlTruncated: false,
@@ -14,7 +14,7 @@ function request(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe("createDocsAssistant", () => {
+describe("createAiAppAssistant", () => {
   it("prepares static documents once and reuses them across questions", async () => {
     let serializations = 0;
     const openapi = {
@@ -24,7 +24,7 @@ describe("createDocsAssistant", () => {
       }
     };
     const bundles: EvidenceBundle[] = [];
-    const assistant = createDocsAssistant({
+    const assistant = createAiAppAssistant({
       generator: capturingGenerator(bundles),
       documents: [
         { id: "app-guide", title: "Application guide", content: "# Orders" },
@@ -48,7 +48,7 @@ describe("createDocsAssistant", () => {
 
   it("passes only HTML, an optional selected fragment, the question and documents", async () => {
     const bundles: EvidenceBundle[] = [];
-    const assistant = createDocsAssistant({
+    const assistant = createAiAppAssistant({
       generator: capturingGenerator(bundles),
       documents: [{ id: "guide", title: "Guide", content: "Approvals are final." }]
     });
@@ -72,7 +72,7 @@ describe("createDocsAssistant", () => {
 
   it("passes a bounded conversation history for follow-up questions", async () => {
     const bundles: EvidenceBundle[] = [];
-    const assistant = createDocsAssistant({ generator: capturingGenerator(bundles) });
+    const assistant = createAiAppAssistant({ generator: capturingGenerator(bundles) });
 
     await assistant.answer(request({
       question: "And what does that status mean?",
@@ -90,13 +90,13 @@ describe("createDocsAssistant", () => {
 
   it("bounds large inputs by default for zero-configuration provider calls", async () => {
     const bundles: EvidenceBundle[] = [];
-    const assistant = createDocsAssistant({
+    const assistant = createAiAppAssistant({
       generator: capturingGenerator(bundles),
       documents: [{ id: "large-guide", title: "Large guide", content: "d".repeat(300_000) }]
     });
 
     await assistant.answer({
-      protocolVersion: "3",
+      protocolVersion: "4",
       requestId: "request-large-input",
       question: "Explain this page",
       locale: "en",
@@ -125,9 +125,9 @@ describe("createDocsAssistant", () => {
       estimatedCharactersPerToken: 2
     });
 
-    await createDocsAssistant({ generator: small, documents: [{ id: "doc", title: "Doc", content }] })
+    await createAiAppAssistant({ generator: small, documents: [{ id: "doc", title: "Doc", content }] })
       .answer(request());
-    await createDocsAssistant({ generator: large, documents: [{ id: "doc", title: "Doc", content }] })
+    await createAiAppAssistant({ generator: large, documents: [{ id: "doc", title: "Doc", content }] })
       .answer(request());
 
     const smallDocument = smallBundles[0]!.items.find((item) => item.source === "document")!;
@@ -136,7 +136,7 @@ describe("createDocsAssistant", () => {
   });
 
   it("drops evidence references invented by the model", async () => {
-    const assistant = createDocsAssistant({
+    const assistant = createAiAppAssistant({
       generator: {
         modelId: "fake:hallucination",
         async generate() {
@@ -159,7 +159,7 @@ describe("createDocsAssistant", () => {
   });
 
   it("exposes provider token usage in response metadata", async () => {
-    const assistant = createDocsAssistant({
+    const assistant = createAiAppAssistant({
       generator: {
         modelId: "fake:usage",
         async generate() {

@@ -1,28 +1,28 @@
 import type {
-  AiDocsAccessRule,
-  AiDocsConfigurationInput,
-  AiDocsManagedConfigurationView,
-  AiDocsProvider
+  AiAppAssistantAccessRule,
+  AiAppAssistantConfigurationInput,
+  AiAppAssistantManagedConfigurationView,
+  AiAppAssistantProvider
 } from "@123toto/ai-app-assistant-contracts";
 import {
-  AiDocsSettingsController,
-  createAiDocsSettingsClient,
-  type AiDocsSettingsClient,
-  type AiDocsSettingsClientOptions,
-  type AiDocsSettingsSnapshot
+  AiAppAssistantSettingsController,
+  createAiAppAssistantSettingsClient,
+  type AiAppAssistantSettingsClient,
+  type AiAppAssistantSettingsClientOptions,
+  type AiAppAssistantSettingsSnapshot
 } from "./settings.js";
 
-export interface AiDocsSettingsElementConfig {
+export interface AiAppAssistantSettingsElementConfig {
   endpoint: string;
   /** Lets framework connectors reuse their authenticated HTTP transport. */
-  client?: AiDocsSettingsClient;
-  headers?: AiDocsSettingsClientOptions["headers"];
+  client?: AiAppAssistantSettingsClient;
+  headers?: AiAppAssistantSettingsClientOptions["headers"];
   title?: string;
   confirmRevoke?: () => boolean | Promise<boolean>;
-  theme?: Partial<AiDocsSettingsTheme>;
+  theme?: Partial<AiAppAssistantSettingsTheme>;
 }
 
-export interface AiDocsSettingsTheme {
+export interface AiAppAssistantSettingsTheme {
   accent: string;
   surface: string;
   surfaceMuted: string;
@@ -32,12 +32,12 @@ export interface AiDocsSettingsTheme {
   danger: string;
 }
 
-interface AiDocsSettingsDraft {
+interface AiAppAssistantSettingsDraft {
   provider: string;
   apiKey: string;
   model: string;
   baseURL: string;
-  accessMode: AiDocsAccessRule["mode"];
+  accessMode: AiAppAssistantAccessRule["mode"];
   roleIds: string[];
   userIds: string[];
   maxRequests: number;
@@ -51,21 +51,21 @@ const HTMLElementBase: typeof HTMLElement = typeof HTMLElement === "undefined"
   : HTMLElement;
 
 /** Optional framework-independent settings screen for the managed server API. */
-export class AiDocsSettingsElement extends HTMLElementBase {
+export class AiAppAssistantSettingsElement extends HTMLElementBase {
   static readonly observedAttributes = ["endpoint", "open", "title"];
 
   readonly #root = this.attachShadow({ mode: "open" });
-  #config: Partial<AiDocsSettingsElementConfig> = {};
-  #controller: AiDocsSettingsController | undefined;
+  #config: Partial<AiAppAssistantSettingsElementConfig> = {};
+  #controller: AiAppAssistantSettingsController | undefined;
   #unsubscribe: (() => void) | undefined;
-  #snapshot: AiDocsSettingsSnapshot | undefined;
+  #snapshot: AiAppAssistantSettingsSnapshot | undefined;
   #initializedEndpoint = "";
-  #configurationIdentity: AiDocsManagedConfigurationView | undefined;
-  #draft: AiDocsSettingsDraft | undefined;
+  #configurationIdentity: AiAppAssistantManagedConfigurationView | undefined;
+  #draft: AiAppAssistantSettingsDraft | undefined;
   #hasOpened = false;
 
   public connectedCallback(): void {
-    this.setAttribute("data-ai-docs-ui", "");
+    this.setAttribute("data-ai-app-assistant-ui", "");
     this.applyTheme();
     this.#root.addEventListener("click", this.onClick);
     this.#root.addEventListener("submit", this.onSubmit);
@@ -85,7 +85,7 @@ export class AiDocsSettingsElement extends HTMLElementBase {
   }
 
   /** Supplies dynamic authorization headers without coupling to a framework. */
-  public configure(config: AiDocsSettingsElementConfig): void {
+  public configure(config: AiAppAssistantSettingsElementConfig): void {
     this.#config = { ...this.#config, ...config };
     this.applyTheme();
     if (this.isConnected) void this.initialize(true);
@@ -104,7 +104,7 @@ export class AiDocsSettingsElement extends HTMLElementBase {
   private async initialize(force = false): Promise<void> {
     const endpoint = this.#config.endpoint ?? this.getAttribute("endpoint") ?? "";
     if (!endpoint) {
-      this.#root.innerHTML = `<style>${STYLES}</style><p class="error">Missing AI Docs endpoint.</p>`;
+      this.#root.innerHTML = `<style>${STYLES}</style><p class="error">Missing AI App Assistant endpoint.</p>`;
       return;
     }
     if (!force && endpoint === this.#initializedEndpoint && this.#controller) {
@@ -113,7 +113,7 @@ export class AiDocsSettingsElement extends HTMLElementBase {
     }
     this.#initializedEndpoint = endpoint;
     this.#unsubscribe?.();
-    this.#controller = new AiDocsSettingsController(this.#config.client ?? createAiDocsSettingsClient({
+    this.#controller = new AiAppAssistantSettingsController(this.#config.client ?? createAiAppAssistantSettingsClient({
       endpoint,
       ...(this.#config.headers ? { headers: this.#config.headers } : {})
     }));
@@ -165,8 +165,8 @@ export class AiDocsSettingsElement extends HTMLElementBase {
   }
 
   private renderForm(
-    snapshot: AiDocsSettingsSnapshot,
-    configuration: AiDocsManagedConfigurationView,
+    snapshot: AiAppAssistantSettingsSnapshot,
+    configuration: AiAppAssistantManagedConfigurationView,
     busy: boolean
   ): string {
     const draft = this.#draft ?? draftFrom(configuration);
@@ -185,7 +185,7 @@ export class AiDocsSettingsElement extends HTMLElementBase {
       <fieldset ${busy ? "disabled" : ""}><legend>Connection</legend>
         <label>Provider<select name="provider" required ${credentialsDisabled ? "disabled" : ""}><option value="">Select…</option>${providerOptions}</select></label>
         <label>API key<input name="apiKey" type="password" autocomplete="new-password" value="${escapeHtml(draft.apiKey)}" placeholder="${configuration.apiKeyConfigured ? "Already provided — enter a new key to replace it" : "Enter API key"}" ${credentialsDisabled ? "disabled" : ""}></label>
-        <label>Model<input name="model" required list="ai-docs-models" value="${escapeHtml(draft.model)}" autocomplete="off" ${modelDisabled ? "disabled" : ""}><datalist id="ai-docs-models">${modelOptions}</datalist></label>
+        <label>Model<input name="model" required list="ai-app-assistant-models" value="${escapeHtml(draft.model)}" autocomplete="off" ${modelDisabled ? "disabled" : ""}><datalist id="ai-app-assistant-models">${modelOptions}</datalist></label>
         <label>Base URL (optional)<input name="baseURL" type="url" value="${escapeHtml(draft.baseURL)}" placeholder="https://…" ${credentialsDisabled ? "disabled" : ""}></label>
         <button type="button" data-action="models" ${modelDisabled ? "disabled" : ""}>Load models</button>
         <button type="button" data-action="test" ${credentialsDisabled && modelDisabled ? "disabled" : ""}>Test connection</button>
@@ -242,7 +242,7 @@ export class AiDocsSettingsElement extends HTMLElementBase {
       apiKey: valueOrDisabled(form, data, "apiKey", this.#draft.apiKey),
       model: valueOrDisabled(form, data, "model", this.#draft.model),
       baseURL: valueOrDisabled(form, data, "baseURL", this.#draft.baseURL),
-      accessMode: valueOrDisabled(form, data, "accessMode", this.#draft.accessMode) as AiDocsAccessRule["mode"],
+      accessMode: valueOrDisabled(form, data, "accessMode", this.#draft.accessMode) as AiAppAssistantAccessRule["mode"],
       roleIds: data.has("roleIds") ? data.getAll("roleIds").map(String) : this.#draft.roleIds,
       userIds: data.has("userIds") ? data.getAll("userIds").map(String) : this.#draft.userIds,
       maxRequests: Number(data.get("maxRequests") ?? this.#draft.maxRequests),
@@ -256,7 +256,7 @@ export class AiDocsSettingsElement extends HTMLElementBase {
 
   private connectionInput() {
     const form = this.form();
-    const provider = formValue(form, "provider") as AiDocsProvider;
+    const provider = formValue(form, "provider") as AiAppAssistantProvider;
     const model = formValue(form, "model");
     const apiKey = formValue(form, "apiKey");
     const baseURL = formValue(form, "baseURL");
@@ -281,14 +281,14 @@ export class AiDocsSettingsElement extends HTMLElementBase {
     const data = new FormData(form);
     const connection = this.connectionInput();
     const accessMode = String(data.get("accessMode"));
-    const access: AiDocsAccessRule = !this.#snapshot?.optionsAvailable && this.#snapshot?.configuration
+    const access: AiAppAssistantAccessRule = !this.#snapshot?.optionsAvailable && this.#snapshot?.configuration
       ? this.#snapshot.configuration.access
       : accessMode === "roles"
         ? { mode: "roles", roles: data.getAll("roleIds").map(String) }
         : accessMode === "users"
           ? { mode: "users", userIds: data.getAll("userIds").map(String) }
           : { mode: "all" };
-    const input: AiDocsConfigurationInput = {
+    const input: AiAppAssistantConfigurationInput = {
       ...connection,
       access,
       quota: {
@@ -304,7 +304,7 @@ export class AiDocsSettingsElement extends HTMLElementBase {
     // entirely when only access, quotas or conversation limits changed.
     try {
       const saved = await this.#controller?.save(input);
-      if (saved) this.dispatchEvent(new CustomEvent("ai-docs-settings-saved", { bubbles: true, composed: true }));
+      if (saved) this.dispatchEvent(new CustomEvent("ai-app-assistant-settings-saved", { bubbles: true, composed: true }));
     } catch { /* Rendered by controller. */ }
   }
 
@@ -316,7 +316,7 @@ export class AiDocsSettingsElement extends HTMLElementBase {
     if (!confirmed) return;
     try {
       await this.#controller?.revokeApiKey();
-      this.dispatchEvent(new CustomEvent("ai-docs-key-revoked", { bubbles: true, composed: true }));
+      this.dispatchEvent(new CustomEvent("ai-app-assistant-key-revoked", { bubbles: true, composed: true }));
     } catch { /* Rendered by controller. */ }
   }
 
@@ -324,7 +324,7 @@ export class AiDocsSettingsElement extends HTMLElementBase {
     const theme = this.#config.theme;
     if (!theme) return;
     // Variables on the custom-element host remain visible inside Shadow DOM.
-    const properties: Record<keyof AiDocsSettingsTheme, string> = {
+    const properties: Record<keyof AiAppAssistantSettingsTheme, string> = {
       accent: "--ai-accent",
       surface: "--ai-surface",
       surfaceMuted: "--ai-muted",
@@ -333,14 +333,14 @@ export class AiDocsSettingsElement extends HTMLElementBase {
       border: "--ai-border",
       danger: "--ai-danger"
     };
-    for (const [key, property] of Object.entries(properties) as Array<[keyof AiDocsSettingsTheme, string]>) {
+    for (const [key, property] of Object.entries(properties) as Array<[keyof AiAppAssistantSettingsTheme, string]>) {
       const value = theme[key];
       if (value) this.style.setProperty(property, value);
     }
   }
 }
 
-function draftFrom(configuration: AiDocsManagedConfigurationView): AiDocsSettingsDraft {
+function draftFrom(configuration: AiAppAssistantManagedConfigurationView): AiAppAssistantSettingsDraft {
   return {
     provider: configuration.provider ?? "",
     apiKey: "",
@@ -401,12 +401,12 @@ function describeAuditChange(change: {
 }
 
 declare global {
-  interface HTMLElementTagNameMap { "ai-docs-settings": AiDocsSettingsElement; }
+  interface HTMLElementTagNameMap { "ai-app-assistant-settings": AiAppAssistantSettingsElement; }
 }
 
-export function defineAiDocsSettingsElement(tagName = "ai-docs-settings"): typeof AiDocsSettingsElement {
-  if (!customElements.get(tagName)) customElements.define(tagName, AiDocsSettingsElement);
-  return AiDocsSettingsElement;
+export function defineAiAppAssistantSettingsElement(tagName = "ai-app-assistant-settings"): typeof AiAppAssistantSettingsElement {
+  if (!customElements.get(tagName)) customElements.define(tagName, AiAppAssistantSettingsElement);
+  return AiAppAssistantSettingsElement;
 }
 
 function escapeHtml(value: string): string {
@@ -420,4 +420,4 @@ const STYLES = `
   .checking{color:var(--ai-text-muted);background:var(--ai-muted)}
 `;
 
-if (typeof customElements !== "undefined") defineAiDocsSettingsElement();
+if (typeof customElements !== "undefined") defineAiAppAssistantSettingsElement();

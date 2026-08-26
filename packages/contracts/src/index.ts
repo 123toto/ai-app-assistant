@@ -1,10 +1,10 @@
 import { z } from "zod";
 
 /** Wire protocol version shared by the browser client and the backend. */
-export const PROTOCOL_VERSION = "3" as const;
+export const PROTOCOL_VERSION = "4" as const;
 
 /** Providers supported by the optional managed runtime and settings UI. */
-export const aiDocsProviderSchema = z.enum([
+export const aiAppAssistantProviderSchema = z.enum([
   "anthropic",
   "google",
   "mistral",
@@ -12,19 +12,19 @@ export const aiDocsProviderSchema = z.enum([
   "openai"
 ]);
 
-export const aiDocsAccessRuleSchema = z.discriminatedUnion("mode", [
+export const aiAppAssistantAccessRuleSchema = z.discriminatedUnion("mode", [
   z.object({ mode: z.literal("all") }),
   z.object({ mode: z.literal("roles"), roles: z.array(z.string().min(1)).min(1) }),
   z.object({ mode: z.literal("users"), userIds: z.array(z.string().min(1)).min(1) })
 ]);
 
 /** Safe configuration payload shared by every administration UI. */
-export const aiDocsConfigurationInputSchema = z.object({
-  provider: aiDocsProviderSchema,
+export const aiAppAssistantConfigurationInputSchema = z.object({
+  provider: aiAppAssistantProviderSchema,
   model: z.string().trim().min(1),
   apiKey: z.string().trim().min(1).optional(),
   baseURL: z.string().url().optional(),
-  access: aiDocsAccessRuleSchema,
+  access: aiAppAssistantAccessRuleSchema,
   quota: z.object({
     maxRequests: z.number().int().min(1).max(10_000),
     windowSeconds: z.number().int().min(60).max(31_536_000)
@@ -33,24 +33,24 @@ export const aiDocsConfigurationInputSchema = z.object({
   allowModelChangesByOthers: z.boolean().optional()
 });
 
-export const aiDocsCredentialsSchema = aiDocsConfigurationInputSchema.pick({
+export const aiAppAssistantCredentialsSchema = aiAppAssistantConfigurationInputSchema.pick({
   provider: true,
   apiKey: true,
   baseURL: true
 });
 
-export const aiDocsConnectionTestInputSchema = aiDocsCredentialsSchema.extend({
+export const aiAppAssistantConnectionTestInputSchema = aiAppAssistantCredentialsSchema.extend({
   model: z.string().trim().min(1)
 });
 
-export const aiDocsConfigurationActorSchema = z.object({
+export const aiAppAssistantConfigurationActorSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1)
 });
 
-export const aiDocsConfigurationAuditEntrySchema = z.object({
+export const aiAppAssistantConfigurationAuditEntrySchema = z.object({
   id: z.string().min(1),
-  actor: aiDocsConfigurationActorSchema,
+  actor: aiAppAssistantConfigurationActorSchema,
   changedAt: z.string().datetime(),
   changes: z.array(z.object({
     field: z.enum(["provider", "apiKey", "model", "access", "quota", "conversation", "modelChangePolicy"]),
@@ -59,20 +59,20 @@ export const aiDocsConfigurationAuditEntrySchema = z.object({
   }))
 });
 
-export const aiDocsRuntimeConnectionSchema = z.object({
+export const aiAppAssistantRuntimeConnectionSchema = z.object({
   status: z.enum(["connected", "disconnected", "not-configured", "unchecked"]),
   checkedAt: z.string().datetime().optional(),
   model: z.string().optional()
 });
 
-const aiDocsConfigurationFieldSourceSchema = z.enum(["environment", "override", "default", "none"]);
+const aiAppAssistantConfigurationFieldSourceSchema = z.enum(["environment", "override", "default", "none"]);
 
 /** Credential-free configuration response validated by every settings client. */
-export const aiDocsManagedConfigurationViewSchema = z.object({
-  provider: aiDocsProviderSchema.nullable(),
+export const aiAppAssistantManagedConfigurationViewSchema = z.object({
+  provider: aiAppAssistantProviderSchema.nullable(),
   model: z.string(),
   baseURL: z.string().url().optional(),
-  access: aiDocsAccessRuleSchema,
+  access: aiAppAssistantAccessRuleSchema,
   quota: z.object({
     maxRequests: z.number().int().positive(),
     windowSeconds: z.number().int().positive()
@@ -83,12 +83,12 @@ export const aiDocsManagedConfigurationViewSchema = z.object({
   configured: z.boolean(),
   source: z.enum(["environment", "stored"]),
   administration: z.object({
-    keyCreatedBy: aiDocsConfigurationActorSchema.optional(),
+    keyCreatedBy: aiAppAssistantConfigurationActorSchema.optional(),
     keyCreatedAt: z.string().datetime().optional(),
-    modelUpdatedBy: aiDocsConfigurationActorSchema.optional(),
+    modelUpdatedBy: aiAppAssistantConfigurationActorSchema.optional(),
     modelUpdatedAt: z.string().datetime().optional(),
     allowModelChangesByOthers: z.boolean(),
-    history: z.array(aiDocsConfigurationAuditEntrySchema)
+    history: z.array(aiAppAssistantConfigurationAuditEntrySchema)
   }).optional(),
   allowModelChangesByOthers: z.boolean(),
   canChangeModel: z.boolean(),
@@ -96,18 +96,18 @@ export const aiDocsManagedConfigurationViewSchema = z.object({
   canManageModelPolicy: z.boolean(),
   canRevokeApiKey: z.boolean(),
   fieldSources: z.object({
-    provider: aiDocsConfigurationFieldSourceSchema,
-    model: aiDocsConfigurationFieldSourceSchema,
-    apiKey: aiDocsConfigurationFieldSourceSchema,
-    baseURL: aiDocsConfigurationFieldSourceSchema,
-    access: aiDocsConfigurationFieldSourceSchema,
-    quota: aiDocsConfigurationFieldSourceSchema,
-    conversation: aiDocsConfigurationFieldSourceSchema
+    provider: aiAppAssistantConfigurationFieldSourceSchema,
+    model: aiAppAssistantConfigurationFieldSourceSchema,
+    apiKey: aiAppAssistantConfigurationFieldSourceSchema,
+    baseURL: aiAppAssistantConfigurationFieldSourceSchema,
+    access: aiAppAssistantConfigurationFieldSourceSchema,
+    quota: aiAppAssistantConfigurationFieldSourceSchema,
+    conversation: aiAppAssistantConfigurationFieldSourceSchema
   }),
-  connection: aiDocsRuntimeConnectionSchema
+  connection: aiAppAssistantRuntimeConnectionSchema
 });
 
-export const aiDocsConnectionResultSchema = z.discriminatedUnion("success", [
+export const aiAppAssistantConnectionResultSchema = z.discriminatedUnion("success", [
   z.object({
     success: z.literal(true),
     model: z.string(),
@@ -126,33 +126,33 @@ export const aiDocsConnectionResultSchema = z.discriminatedUnion("success", [
   })
 ]);
 
-export const aiDocsProviderInfoSchema = z.object({
-  id: aiDocsProviderSchema,
+export const aiAppAssistantProviderInfoSchema = z.object({
+  id: aiAppAssistantProviderSchema,
   label: z.string(),
   requiresApiKey: z.boolean(),
   supportsModelDiscovery: z.boolean()
 });
 
-export const aiDocsModelInfoSchema = z.object({
+export const aiAppAssistantModelInfoSchema = z.object({
   id: z.string().min(1),
-  provider: aiDocsProviderSchema,
+  provider: aiAppAssistantProviderSchema,
   label: z.string().optional(),
   createdAt: z.string().optional()
 });
 
-export const aiDocsConfigurationOptionsSchema = z.object({
+export const aiAppAssistantConfigurationOptionsSchema = z.object({
   roles: z.array(z.object({ id: z.string().min(1), label: z.string() })),
   users: z.array(z.object({ id: z.string().min(1), label: z.string() }))
 });
 
-export const aiDocsConfigurationSaveResultSchema = z.object({
+export const aiAppAssistantConfigurationSaveResultSchema = z.object({
   saved: z.boolean(),
-  connection: aiDocsConnectionResultSchema,
-  configuration: aiDocsManagedConfigurationViewSchema.optional()
+  connection: aiAppAssistantConnectionResultSchema,
+  configuration: aiAppAssistantManagedConfigurationViewSchema.optional()
 });
 
 /** Small response used by managed clients to decide whether the launcher is visible. */
-export const aiDocsAccessViewSchema = z.object({
+export const aiAppAssistantAccessViewSchema = z.object({
   available: z.boolean(),
   maxConversationTurns: z.number().int().min(1).max(10)
 });
@@ -164,7 +164,7 @@ export const conversationMessageSchema = z.object({
 });
 
 /** Minimal request sent by any frontend integration. */
-export const askDocumentationRequestSchema = z.object({
+export const aiAppAssistantRequestSchema = z.object({
   protocolVersion: z.literal(PROTOCOL_VERSION),
   requestId: z.string().min(1).max(200),
   html: z.string().min(1).max(8_000_000),
@@ -214,7 +214,7 @@ export const tokenUsageSchema = z.object({
   totalTokens: z.number().int().nonnegative().optional()
 });
 
-export const askDocumentationResponseSchema = generatedAnswerSchema.extend({
+export const aiAppAssistantResponseSchema = generatedAnswerSchema.extend({
   protocolVersion: z.literal(PROTOCOL_VERSION),
   requestId: z.string(),
   confidence: z.object({
@@ -231,7 +231,7 @@ export const askDocumentationResponseSchema = generatedAnswerSchema.extend({
 });
 
 /** NDJSON events emitted by the optional progressive endpoint. */
-export const askDocumentationStreamEventSchema = z.discriminatedUnion("type", [
+export const aiAppAssistantTransportEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("status"), phase: z.enum(["preparing", "generating"]) }),
   z.object({ type: z.literal("partial"), text: z.string() }),
   z.object({
@@ -248,40 +248,40 @@ export const askDocumentationStreamEventSchema = z.discriminatedUnion("type", [
     code: z.string().optional(),
     requestId: z.string().optional()
   }),
-  z.object({ type: z.literal("complete"), response: askDocumentationResponseSchema })
+  z.object({ type: z.literal("complete"), response: aiAppAssistantResponseSchema })
 ]);
 
 export type EvidenceSource = z.infer<typeof evidenceSchema>["source"];
-export type AiDocsProvider = z.infer<typeof aiDocsProviderSchema>;
-export type AiDocsAccessRule = z.infer<typeof aiDocsAccessRuleSchema>;
-export type AiDocsConfigurationInput = z.infer<typeof aiDocsConfigurationInputSchema>;
-export type AiDocsCredentials = z.infer<typeof aiDocsCredentialsSchema>;
-export type AiDocsConnectionTestInput = z.infer<typeof aiDocsConnectionTestInputSchema>;
-export type AiDocsConfigurationFieldSource = "environment" | "override" | "default" | "none";
-export type AiDocsRuntimeConnectionStatus = "connected" | "disconnected" | "not-configured" | "unchecked";
+export type AiAppAssistantProvider = z.infer<typeof aiAppAssistantProviderSchema>;
+export type AiAppAssistantAccessRule = z.infer<typeof aiAppAssistantAccessRuleSchema>;
+export type AiAppAssistantConfigurationInput = z.infer<typeof aiAppAssistantConfigurationInputSchema>;
+export type AiAppAssistantCredentials = z.infer<typeof aiAppAssistantCredentialsSchema>;
+export type AiAppAssistantConnectionTestInput = z.infer<typeof aiAppAssistantConnectionTestInputSchema>;
+export type AiAppAssistantConfigurationFieldSource = "environment" | "override" | "default" | "none";
+export type AiAppAssistantRuntimeConnectionStatus = "connected" | "disconnected" | "not-configured" | "unchecked";
 
-export type AiDocsConfigurationActor = z.infer<typeof aiDocsConfigurationActorSchema>;
-export type AiDocsConfigurationAuditEntry = z.infer<typeof aiDocsConfigurationAuditEntrySchema>;
-export type AiDocsConfigurationAdministration = NonNullable<
-  z.infer<typeof aiDocsManagedConfigurationViewSchema>["administration"]
+export type AiAppAssistantConfigurationActor = z.infer<typeof aiAppAssistantConfigurationActorSchema>;
+export type AiAppAssistantConfigurationAuditEntry = z.infer<typeof aiAppAssistantConfigurationAuditEntrySchema>;
+export type AiAppAssistantConfigurationAdministration = NonNullable<
+  z.infer<typeof aiAppAssistantManagedConfigurationViewSchema>["administration"]
 >;
-export type AiDocsRuntimeConnection = z.infer<typeof aiDocsRuntimeConnectionSchema>;
+export type AiAppAssistantRuntimeConnection = z.infer<typeof aiAppAssistantRuntimeConnectionSchema>;
 /** Credential-free view returned by the managed administration endpoints. */
-export type AiDocsManagedConfigurationView = z.infer<typeof aiDocsManagedConfigurationViewSchema>;
+export type AiAppAssistantManagedConfigurationView = z.infer<typeof aiAppAssistantManagedConfigurationViewSchema>;
 
-export type AiDocsConnectionResult = z.infer<typeof aiDocsConnectionResultSchema>;
+export type AiAppAssistantConnectionResult = z.infer<typeof aiAppAssistantConnectionResultSchema>;
 
-export type AiDocsProviderInfoContract = z.infer<typeof aiDocsProviderInfoSchema>;
-export type AiDocsModelInfoContract = z.infer<typeof aiDocsModelInfoSchema>;
+export type AiAppAssistantProviderInfoContract = z.infer<typeof aiAppAssistantProviderInfoSchema>;
+export type AiAppAssistantModelInfoContract = z.infer<typeof aiAppAssistantModelInfoSchema>;
 
 /** Optional directory values exposed by a host application to the settings UI. */
-export type AiDocsConfigurationOptions = z.infer<typeof aiDocsConfigurationOptionsSchema>;
-export type AiDocsAccessView = z.infer<typeof aiDocsAccessViewSchema>;
-export type AskDocumentationRequest = z.infer<typeof askDocumentationRequestSchema>;
+export type AiAppAssistantConfigurationOptions = z.infer<typeof aiAppAssistantConfigurationOptionsSchema>;
+export type AiAppAssistantAccessView = z.infer<typeof aiAppAssistantAccessViewSchema>;
+export type AiAppAssistantRequest = z.infer<typeof aiAppAssistantRequestSchema>;
 export type ConversationMessage = z.infer<typeof conversationMessageSchema>;
 // Custom generators may omit the defaulted field; parsed responses always
-// contain it through `AskDocumentationResponse`.
+// contain it through `AiAppAssistantResponse`.
 export type GeneratedAnswer = z.input<typeof generatedAnswerSchema>;
 export type TokenUsage = z.infer<typeof tokenUsageSchema>;
-export type AskDocumentationResponse = z.infer<typeof askDocumentationResponseSchema>;
-export type AskDocumentationStreamEvent = z.infer<typeof askDocumentationStreamEventSchema>;
+export type AiAppAssistantResponse = z.infer<typeof aiAppAssistantResponseSchema>;
+export type AiAppAssistantTransportEvent = z.infer<typeof aiAppAssistantTransportEventSchema>;

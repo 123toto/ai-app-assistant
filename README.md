@@ -1,6 +1,6 @@
 # AI App Assistant
 
-Framework-neutral packages for adding an in-app AI documentation assistant to an existing application.
+Framework-neutral packages for adding a contextual AI App Assistant to an existing application.
 
 The assistant answers questions from:
 
@@ -33,10 +33,10 @@ Node.js 20 or later is required.
 ## Backend quick start
 
 ```ts
-import { createAiDocsServer } from "@123toto/ai-app-assistant-server";
+import { createAiAppAssistantServer } from "@123toto/ai-app-assistant-server";
 
-const aiDocs = createAiDocsServer({
-  model: process.env.AI_DOCS_MODEL ?? "mistral:mistral-small-latest",
+const aiAppAssistant = createAiAppAssistantServer({
+  model: process.env.AI_APP_ASSISTANT_MODEL ?? "mistral:mistral-small-latest",
   documents: [
     {
       id: "application-guide",
@@ -58,7 +58,7 @@ const aiDocs = createAiDocsServer({
 });
 
 // Fetch-compatible frameworks such as Next.js, Hono or serverless runtimes.
-export const POST = (request: Request) => aiDocs.fetch.handle(request);
+export const POST = (request: Request) => aiAppAssistant.fetch.handle(request);
 ```
 
 `mistral:*` reads `MISTRAL_API_KEY` from the backend environment. The API key is never included in browser code or assistant responses.
@@ -70,11 +70,11 @@ import "@123toto/ai-app-assistant-client/web-component";
 ```
 
 ```html
-<ai-docs-assistant
-  endpoint="/api/ai-docs/ask"
-  stream-endpoint="/api/ai-docs/ask/stream"
+<ai-app-assistant
+  endpoint="/api/ai-app-assistant/ask"
+  stream-endpoint="/api/ai-app-assistant/ask/stream"
   assistant-name="Application assistant"
-></ai-docs-assistant>
+></ai-app-assistant>
 ```
 
 The Web Component works in plain HTML, React, Vue, Svelte and Angular. It owns page capture, DOM selection, conversation state, streaming, retry and cancellation.
@@ -84,12 +84,12 @@ The Web Component works in plain HTML, React, Vue, Svelte and Angular. It owns p
 Applications that need an administration screen can opt into the managed server. It adds encrypted provider configuration, access rules, per-user quotas, model discovery, audit history, Redis synchronization and safe telemetry.
 
 ```ts
-import { createManagedAiDocsServer } from "@123toto/ai-app-assistant-server";
+import { createManagedAiAppAssistantServer } from "@123toto/ai-app-assistant-server";
 
-const aiDocs = createManagedAiDocsServer({
+const aiAppAssistant = createManagedAiAppAssistantServer({
   configuration: {
-    storage: { type: "redis", client: redis, prefix: "my-app:ai-docs:" },
-    encryptionKey: process.env.AI_DOCS_SECRET_ENCRYPTION_KEY!,
+    storage: { type: "redis", client: redis, prefix: "my-app:ai-app-assistant:" },
+    encryptionKey: process.env.AI_APP_ASSISTANT_SECRET_ENCRYPTION_KEY!,
     defaultConfiguration: {
       provider: "mistral",
       model: "mistral-small-latest",
@@ -111,7 +111,7 @@ const aiDocs = createManagedAiDocsServer({
   }
 });
 
-await aiDocs.initialize();
+await aiAppAssistant.initialize();
 ```
 
 The application remains responsible only for identity, business-specific privacy rules, its document sources and optional visual customization.
@@ -119,14 +119,14 @@ The application remains responsible only for identity, business-specific privacy
 ### Express
 
 ```ts
-import { createManagedAiDocsExpressHandler } from "@123toto/ai-app-assistant-server/express";
+import { createManagedAiAppAssistantExpressHandler } from "@123toto/ai-app-assistant-server/express";
 
-app.use("/api/ai-docs", createManagedAiDocsExpressHandler(aiDocs));
+app.use("/api/ai-app-assistant", createManagedAiAppAssistantExpressHandler(aiAppAssistant));
 ```
 
 ### Nest
 
-`@123toto/ai-app-assistant-server/nest` provides a dynamic module with its own catch-all controller. The host application does not declare AI Docs endpoints or duplicate DTOs.
+`@123toto/ai-app-assistant-server/nest` provides a dynamic module with its own catch-all controller. The host application does not declare AI App Assistant endpoints or duplicate DTOs.
 
 ### Generic settings UI
 
@@ -135,10 +135,10 @@ import "@123toto/ai-app-assistant-client/settings-web-component";
 ```
 
 ```html
-<ai-docs-settings endpoint="/api/ai-docs"></ai-docs-settings>
+<ai-app-assistant-settings endpoint="/api/ai-app-assistant"></ai-app-assistant-settings>
 ```
 
-Angular applications may instead use `provideAiDocs`, `AiDocsAssistantComponent` and `AiDocsSettingsService` from `@123toto/ai-app-assistant-client/angular`.
+Angular applications may instead use `provideAiAppAssistant`, `AiAppAssistantComponent` and `AiAppAssistantSettingsService` from `@123toto/ai-app-assistant-client/angular`.
 
 ## Built-in model identifiers
 

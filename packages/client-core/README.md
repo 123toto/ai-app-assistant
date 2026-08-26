@@ -13,10 +13,10 @@ import "@123toto/ai-app-assistant-client/web-component";
 ```
 
 ```html
-<ai-docs-assistant
-  endpoint="/api/ai-docs/ask"
-  stream-endpoint="/api/ai-docs/ask/stream"
-></ai-docs-assistant>
+<ai-app-assistant
+  endpoint="/api/ai-app-assistant/ask"
+  stream-endpoint="/api/ai-app-assistant/ask/stream"
+></ai-app-assistant>
 ```
 
 The component handles page capture, DOM element selection, streaming, retry, cancellation and conversation state. It can be used from plain HTML, React, Vue, Svelte or Angular.
@@ -24,8 +24,8 @@ The component handles page capture, DOM element selection, streaming, retry, can
 Runtime headers and visual labels can be configured programmatically:
 
 ```ts
-document.querySelector("ai-docs-assistant")?.configure({
-  endpoint: "/api/ai-docs/ask",
+document.querySelector("ai-app-assistant")?.configure({
+  endpoint: "/api/ai-app-assistant/ask",
   headers: () => ({ authorization: `Bearer ${auth.token()}` }),
   assistantName: "Application assistant"
 });
@@ -33,18 +33,18 @@ document.querySelector("ai-docs-assistant")?.configure({
 
 ## Headless client
 
-Import `createAiDocsClient`, `AiDocsAssistantController`, `capturePage` or `pickElement` from `@123toto/ai-app-assistant-client` when the application owns the complete UI.
+Import `createAiAppAssistantClient`, `AiAppAssistantController`, `capturePage` or `pickElement` from `@123toto/ai-app-assistant-client` when the application owns the complete UI.
 
 ## Angular connector
 
 ```ts
-import { AiDocsAssistantComponent, provideAiDocs } from "@123toto/ai-app-assistant-client/angular";
+import { AiAppAssistantComponent, provideAiAppAssistant } from "@123toto/ai-app-assistant-client/angular";
 
 bootstrapApplication(AppComponent, {
-  providers: [provideAiDocs({
-    endpoint: "/api/ai-docs/ask",
-    streamEndpoint: "/api/ai-docs/ask/stream",
-    managedEndpoint: "/api/ai-docs"
+  providers: [provideAiAppAssistant({
+    endpoint: "/api/ai-app-assistant/ask",
+    streamEndpoint: "/api/ai-app-assistant/ask/stream",
+    managedEndpoint: "/api/ai-app-assistant"
   })]
 });
 ```

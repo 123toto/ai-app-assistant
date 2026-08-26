@@ -23,33 +23,33 @@ import {
 } from "@angular/core";
 import { firstValueFrom, fromEvent, takeUntil } from "rxjs";
 import type {
-  AiDocsAccessView,
-  AskDocumentationResponse
+  AiAppAssistantAccessView,
+  AiAppAssistantResponse
 } from "@123toto/ai-app-assistant-contracts";
 import {
-  createAiDocsClient,
-  type AiDocsClient,
-  type AiDocsStreamTransport
+  createAiAppAssistantClient,
+  type AiAppAssistantClient,
+  type AiAppAssistantStreamTransport
 } from "./client.js";
 import {
-  AiDocsAssistantController,
-  normalizeAiDocsError as normalizeError,
-  type AiDocsControllerConfig,
-  type AiDocsControllerMessage,
-  type AiDocsControllerState
+  AiAppAssistantController,
+  normalizeAiAppAssistantError as normalizeError,
+  type AiAppAssistantControllerConfig,
+  type AiAppAssistantControllerMessage,
+  type AiAppAssistantControllerState
 } from "./controller.js";
 import {
-  createAiDocsSettingsClient,
-  type AiDocsSettingsClient
+  createAiAppAssistantSettingsClient,
+  type AiAppAssistantSettingsClient
 } from "./settings.js";
 import {
-  defineAiDocsSettingsElement,
-  type AiDocsSettingsElement,
-  type AiDocsSettingsTheme
+  defineAiAppAssistantSettingsElement,
+  type AiAppAssistantSettingsElement,
+  type AiAppAssistantSettingsTheme
 } from "./settings-web-component.js";
 
 /** Configuration for the Angular connector and its ready-to-use assistant. */
-export interface AiDocsAngularConfig extends AiDocsControllerConfig {
+export interface AiAppAssistantAngularConfig extends AiAppAssistantControllerConfig {
   endpoint: string;
   streamEndpoint?: string;
   /** Enables access discovery and the optional administration screen. */
@@ -63,25 +63,25 @@ export interface AiDocsAngularConfig extends AiDocsControllerConfig {
    * which lets a host application follow its own live theme without coupling
    * this connector to a particular design system.
    */
-  theme?: Partial<AiDocsTheme>;
+  theme?: Partial<AiAppAssistantTheme>;
   /** @deprecated Prefer `theme.accent`. */
   accentColor?: string;
   mascot?: string;
   /** Optional copy overrides; defaults follow the document language (French or English). */
-  labels?: Partial<AiDocsUiLabels>;
-  settings?: AiDocsAngularSettingsConfig;
+  labels?: Partial<AiAppAssistantUiLabels>;
+  settings?: AiAppAssistantAngularSettingsConfig;
 }
 
-export interface AiDocsAngularSettingsConfig {
+export interface AiAppAssistantAngularSettingsConfig {
   title?: string;
   /** Defaults to document.body. Useful when theme variables live on an application shell. */
   container?: () => HTMLElement | null;
   confirmRevoke?: () => boolean | Promise<boolean>;
-  theme?: Partial<AiDocsSettingsTheme>;
+  theme?: Partial<AiAppAssistantSettingsTheme>;
 }
 
 /** Small provider-neutral palette used by the ready-to-use assistant. */
-export interface AiDocsTheme {
+export interface AiAppAssistantTheme {
   accent: string;
   accentContrast: string;
   header: string;
@@ -98,7 +98,7 @@ export interface AiDocsTheme {
   danger: string;
 }
 
-export interface AiDocsUiLabels {
+export interface AiAppAssistantUiLabels {
   selectionInstruction: string;
   cancel: string;
   newConversation: string;
@@ -126,19 +126,19 @@ export interface AiDocsUiLabels {
   send: string;
 }
 
-const AI_DOCS_CLIENT = new InjectionToken<AiDocsClient>("AI_DOCS_CLIENT");
-const AI_DOCS_CONFIG = new InjectionToken<AiDocsAngularConfig>("AI_DOCS_CONFIG");
-const AI_DOCS_SETTINGS_CLIENT = new InjectionToken<AiDocsSettingsClient | undefined>("AI_DOCS_SETTINGS_CLIENT");
+const AI_APP_ASSISTANT_CLIENT = new InjectionToken<AiAppAssistantClient>("AI_APP_ASSISTANT_CLIENT");
+const AI_APP_ASSISTANT_CONFIG = new InjectionToken<AiAppAssistantAngularConfig>("AI_APP_ASSISTANT_CONFIG");
+const AI_APP_ASSISTANT_SETTINGS_CLIENT = new InjectionToken<AiAppAssistantSettingsClient | undefined>("AI_APP_ASSISTANT_SETTINGS_CLIENT");
 
 /** Registers the generic client while preserving Angular HTTP interceptors. */
-export function provideAiDocs(config: AiDocsAngularConfig): EnvironmentProviders {
+export function provideAiAppAssistant(config: AiAppAssistantAngularConfig): EnvironmentProviders {
   return makeEnvironmentProviders([
-    { provide: AI_DOCS_CONFIG, useValue: config },
+    { provide: AI_APP_ASSISTANT_CONFIG, useValue: config },
     {
-      provide: AI_DOCS_CLIENT,
+      provide: AI_APP_ASSISTANT_CLIENT,
       useFactory: () => {
         const http = inject(HttpClient);
-        return createAiDocsClient({
+        return createAiAppAssistantClient({
           endpoint: config.endpoint,
           ...(config.streamEndpoint ? { streamEndpoint: config.streamEndpoint } : {}),
           transport: async (request, options) => {
@@ -155,41 +155,41 @@ export function provideAiDocs(config: AiDocsAngularConfig): EnvironmentProviders
       }
     },
     {
-      provide: AI_DOCS_SETTINGS_CLIENT,
+      provide: AI_APP_ASSISTANT_SETTINGS_CLIENT,
       useFactory: () => {
         if (!config.managedEndpoint) return undefined;
-        return createAiDocsSettingsClient({
+        return createAiAppAssistantSettingsClient({
           endpoint: config.managedEndpoint,
           fetch: createAngularFetch(inject(HttpClient))
         });
       }
     },
     {
-      provide: AiDocsService,
-      useFactory: () => new AiDocsService(
-        inject(AI_DOCS_CONFIG),
-        inject(AI_DOCS_CLIENT),
-        inject(AI_DOCS_SETTINGS_CLIENT)
+      provide: AiAppAssistantService,
+      useFactory: () => new AiAppAssistantService(
+        inject(AI_APP_ASSISTANT_CONFIG),
+        inject(AI_APP_ASSISTANT_CLIENT),
+        inject(AI_APP_ASSISTANT_SETTINGS_CLIENT)
       )
     },
     {
-      provide: AiDocsSettingsService,
-      useFactory: () => new AiDocsSettingsService(
-        inject(AI_DOCS_CONFIG),
-        inject(AI_DOCS_SETTINGS_CLIENT),
-        inject(AiDocsService)
+      provide: AiAppAssistantSettingsService,
+      useFactory: () => new AiAppAssistantSettingsService(
+        inject(AI_APP_ASSISTANT_CONFIG),
+        inject(AI_APP_ASSISTANT_SETTINGS_CLIENT),
+        inject(AiAppAssistantService)
       )
     }
   ]);
 }
 
-export type AiDocsState = AiDocsControllerState;
-export type AiDocsConversationMessage = AiDocsControllerMessage;
+export type AiAppAssistantState = AiAppAssistantControllerState;
+export type AiAppAssistantConversationMessage = AiAppAssistantControllerMessage;
 
 /** Angular state, conversation and cancellable DOM-selection facade. */
-export class AiDocsService {
-  readonly #state = signal<AiDocsState>({ status: "idle" });
-  readonly #messages = signal<AiDocsConversationMessage[]>([]);
+export class AiAppAssistantService {
+  readonly #state = signal<AiAppAssistantState>({ status: "idle" });
+  readonly #messages = signal<AiAppAssistantConversationMessage[]>([]);
   readonly #selecting = signal(false);
   readonly #selectedElementLabel = signal<string | undefined>(undefined);
   readonly #loading = signal(false);
@@ -206,17 +206,17 @@ export class AiDocsService {
   readonly conversationTurns = this.#conversationTurns.asReadonly();
   readonly conversationLimitReached = this.#conversationLimitReached.asReadonly();
   readonly available = this.#available.asReadonly();
-  readonly config: Readonly<AiDocsAngularConfig>;
-  readonly #controller: AiDocsAssistantController;
+  readonly config: Readonly<AiAppAssistantAngularConfig>;
+  readonly #controller: AiAppAssistantController;
 
   public constructor(
-    config: AiDocsAngularConfig,
-    client: AiDocsClient,
-    readonly settingsClient?: AiDocsSettingsClient
+    config: AiAppAssistantAngularConfig,
+    client: AiAppAssistantClient,
+    readonly settingsClient?: AiAppAssistantSettingsClient
   ) {
     this.config = config;
     this.#available.set(!config.managedEndpoint);
-    this.#controller = new AiDocsAssistantController(config, client);
+    this.#controller = new AiAppAssistantController(config, client);
     this.#controller.subscribe((snapshot) => {
       this.#state.set(snapshot.state);
       this.#messages.set([...snapshot.messages]);
@@ -231,13 +231,13 @@ export class AiDocsService {
   }
 
   /** Refreshes launcher visibility and the server-defined conversation limit. */
-  public async refreshAccess(): Promise<AiDocsAccessView | undefined> {
+  public async refreshAccess(): Promise<AiAppAssistantAccessView | undefined> {
     if (!this.config.managedEndpoint) {
       this.#available.set(true);
       return undefined;
     }
     try {
-      if (!this.settingsClient) throw new Error("Managed AI Docs client is unavailable");
+      if (!this.settingsClient) throw new Error("Managed AI App Assistant client is unavailable");
       const access = await this.settingsClient.getAccess();
       this.#available.set(access.available);
       this.setMaxConversationTurns(access.maxConversationTurns);
@@ -253,7 +253,7 @@ export class AiDocsService {
   }
 
   /** Captures the page and asks without application-specific DOM annotations. */
-  public async ask(options: { question?: string; selectedElement?: Element } = {}): Promise<AskDocumentationResponse> {
+  public async ask(options: { question?: string; selectedElement?: Element } = {}): Promise<AiAppAssistantResponse> {
     return this.#controller.ask(options);
   }
 
@@ -263,7 +263,7 @@ export class AiDocsService {
   }
 
   /** Backward-compatible shortcut; prefer selectElement followed by ask. */
-  public async selectAndAsk(question: string, options?: { signal?: AbortSignal }): Promise<AskDocumentationResponse> {
+  public async selectAndAsk(question: string, options?: { signal?: AbortSignal }): Promise<AiAppAssistantResponse> {
     return this.#controller.selectAndAsk(question, options);
   }
 
@@ -275,7 +275,7 @@ export class AiDocsService {
   public stop(): void { this.#controller.stop(); }
 
   /** Replays the last prompt after automatic retries have been exhausted. */
-  public retry(): Promise<AskDocumentationResponse> { return this.#controller.retry(); }
+  public retry(): Promise<AiAppAssistantResponse> { return this.#controller.retry(); }
 
   /** Explicitly clears conversation and selection; minimizing does not. */
   public newConversation(): void { this.#controller.newConversation(); }
@@ -292,19 +292,19 @@ export class AiDocsService {
 }
 
 /** Opens the framework-neutral settings UI with Angular's authenticated HttpClient. */
-export class AiDocsSettingsService {
-  #element: AiDocsSettingsElement | undefined;
+export class AiAppAssistantSettingsService {
+  #element: AiAppAssistantSettingsElement | undefined;
 
   public constructor(
-    readonly config: AiDocsAngularConfig,
-    readonly client: AiDocsSettingsClient | undefined,
-    readonly assistant: AiDocsService
+    readonly config: AiAppAssistantAngularConfig,
+    readonly client: AiAppAssistantSettingsClient | undefined,
+    readonly assistant: AiAppAssistantService
   ) {}
 
   /** Lazily creates and opens the generic settings element. */
   public open(): void {
     if (!this.config.managedEndpoint || !this.client) {
-      throw new Error("Set managedEndpoint before opening AI Docs settings.");
+      throw new Error("Set managedEndpoint before opening AI App Assistant settings.");
     }
     const element = this.element();
     element.show();
@@ -313,10 +313,10 @@ export class AiDocsSettingsService {
   public close(): void { this.#element?.close(); }
 
   /** Creates one shared element and refreshes launcher access after changes. */
-  private element(): AiDocsSettingsElement {
+  private element(): AiAppAssistantSettingsElement {
     if (this.#element?.isConnected) return this.#element;
-    defineAiDocsSettingsElement();
-    const element = document.createElement("ai-docs-settings") as AiDocsSettingsElement;
+    defineAiAppAssistantSettingsElement();
+    const element = document.createElement("ai-app-assistant-settings") as AiAppAssistantSettingsElement;
     const settingsTheme = compactTheme({
       accent: this.config.theme?.accent,
       surface: this.config.theme?.surface,
@@ -340,21 +340,21 @@ export class AiDocsSettingsService {
       element.close();
       void this.assistant.refreshAccess();
     };
-    element.addEventListener("ai-docs-settings-saved", configurationChanged);
-    element.addEventListener("ai-docs-key-revoked", configurationChanged);
+    element.addEventListener("ai-app-assistant-settings-saved", configurationChanged);
+    element.addEventListener("ai-app-assistant-key-revoked", configurationChanged);
     (this.config.settings?.container?.() ?? document.body).append(element);
     this.#element = element;
     return element;
   }
 }
 
-/** Complete standalone UI. Add `<ai-docs-assistant />` near the app root. */
+/** Complete standalone UI. Add `<ai-app-assistant />` near the app root. */
 @Component({
-  selector: "ai-docs-assistant",
+  selector: "ai-app-assistant",
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    "data-ai-docs-ui": "",
+    "data-ai-app-assistant-ui": "",
     "[style.display]": "service.available() ? null : 'none'",
     "[style.--ai-accent]": "theme().accent",
     "[style.--ai-accent-contrast]": "theme().accentContrast",
@@ -476,8 +476,8 @@ export class AiDocsSettingsService {
     @media(prefers-reduced-motion:reduce){.ai-star,.ai-progress .ai-dots i{animation:none}}
   `]
 })
-export class AiDocsAssistantComponent implements OnInit, OnDestroy {
-  public readonly service = inject(AiDocsService);
+export class AiAppAssistantComponent implements OnInit, OnDestroy {
+  public readonly service = inject(AiAppAssistantService);
   public readonly open = signal(false);
   public readonly docked = signal(true);
   public readonly left = signal<number | null>(null);
@@ -487,13 +487,13 @@ export class AiDocsAssistantComponent implements OnInit, OnDestroy {
   public readonly launcherLabel = computed(() => this.service.config.launcherLabel ?? "Ask AI");
   public readonly subtitle = computed(() => this.service.config.subtitle ?? "Help about this page");
   public readonly mascot = computed(() => this.service.config.mascot ?? "✦");
-  public readonly theme = computed<Partial<AiDocsTheme>>(() => ({
+  public readonly theme = computed<Partial<AiAppAssistantTheme>>(() => ({
     ...this.service.config.theme,
     ...(this.service.config.theme?.accent || !this.service.config.accentColor
       ? {}
       : { accent: this.service.config.accentColor })
   }));
-  public readonly labels = computed<AiDocsUiLabels>(() => ({
+  public readonly labels = computed<AiAppAssistantUiLabels>(() => ({
     ...(document.documentElement.lang.toLowerCase().startsWith("fr") ? FRENCH_LABELS : ENGLISH_LABELS),
     ...this.service.config.labels
   }));
@@ -567,11 +567,11 @@ export class AiDocsAssistantComponent implements OnInit, OnDestroy {
       this.docked.set(true);
     }
   }
-  public confidencePercent(response: AskDocumentationResponse): number { return Math.round(response.confidence.score * 100); }
-  public confidenceClass(response: AskDocumentationResponse): string {
+  public confidencePercent(response: AiAppAssistantResponse): number { return Math.round(response.confidence.score * 100); }
+  public confidenceClass(response: AiAppAssistantResponse): string {
     return `ai-confidence-${response.confidence.level}`;
   }
-  public confidenceNotice(response: AskDocumentationResponse): string | undefined {
+  public confidenceNotice(response: AiAppAssistantResponse): string | undefined {
     if (response.confidence.level === "medium") return this.labels().mediumConfidence;
     if (response.confidence.level === "low") return this.labels().lowConfidence;
     if (response.confidence.level === "insufficient") return this.labels().insufficientConfidence;
@@ -583,7 +583,7 @@ export class AiDocsAssistantComponent implements OnInit, OnDestroy {
         : phase === "writing" ? this.labels().writing
           : this.labels().finalizing;
   }
-  public visibleLimitations(response: AskDocumentationResponse): string[] {
+  public visibleLimitations(response: AiAppAssistantResponse): string[] {
     return response.limitations.slice(0, 2);
   }
   public updateQuestion(event: Event): void { this.question.set((event.target as HTMLTextAreaElement).value); }
@@ -641,7 +641,7 @@ export class AiDocsAssistantComponent implements OnInit, OnDestroy {
   }
 }
 
-function createAngularStreamTransport(http: HttpClient, config: AiDocsAngularConfig): AiDocsStreamTransport {
+function createAngularStreamTransport(http: HttpClient, config: AiAppAssistantAngularConfig): AiAppAssistantStreamTransport {
   return async function* (request, options) {
     if (options.signal?.aborted) throw abortReason(options.signal);
     const events$ = http.post(options.endpoint, request, {
@@ -746,15 +746,15 @@ function toFetchHeaders(input: HttpHeaders): Headers {
 }
 
 function compactTheme(
-  input: Partial<Record<keyof AiDocsSettingsTheme, string | undefined>>
-): Partial<AiDocsSettingsTheme> {
+  input: Partial<Record<keyof AiAppAssistantSettingsTheme, string | undefined>>
+): Partial<AiAppAssistantSettingsTheme> {
   return Object.fromEntries(
     Object.entries(input).filter((entry): entry is [string, string] => Boolean(entry[1]))
-  ) as Partial<AiDocsSettingsTheme>;
+  ) as Partial<AiAppAssistantSettingsTheme>;
 }
 function abortReason(signal: AbortSignal): unknown { return signal.reason ?? new DOMException("Aborted", "AbortError"); }
 
-const ENGLISH_LABELS: AiDocsUiLabels = {
+const ENGLISH_LABELS: AiAppAssistantUiLabels = {
   selectionInstruction: "Select an element on the page",
   cancel: "Cancel",
   newConversation: "New conversation",
@@ -782,7 +782,7 @@ const ENGLISH_LABELS: AiDocsUiLabels = {
   send: "Send"
 };
 
-const FRENCH_LABELS: AiDocsUiLabels = {
+const FRENCH_LABELS: AiAppAssistantUiLabels = {
   selectionInstruction: "Choisissez un élément dans la page",
   cancel: "Annuler",
   newConversation: "Nouvelle conversation",

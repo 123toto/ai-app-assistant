@@ -5,23 +5,23 @@ import {
   type AiSdkFailureCode
 } from "./ai-sdk.js";
 
-export type AiDocsGenerationOperation = "answer" | "stream";
+export type AiAppAssistantGenerationOperation = "answer" | "stream";
 
-interface AiDocsGenerationEventBase {
+interface AiAppAssistantGenerationEventBase {
   requestId: string;
-  operation: AiDocsGenerationOperation;
+  operation: AiAppAssistantGenerationOperation;
   model: string;
   durationMs: number;
   occurredAt: string;
 }
 
 /** Safe operational event. It deliberately excludes prompts, HTML, users and credentials. */
-export type AiDocsGenerationEvent =
-  | (AiDocsGenerationEventBase & {
+export type AiAppAssistantGenerationEvent =
+  | (AiAppAssistantGenerationEventBase & {
       outcome: "success";
       usage?: TokenUsage;
     })
-  | (AiDocsGenerationEventBase & {
+  | (AiAppAssistantGenerationEventBase & {
       outcome: "failure";
       error: {
         code: AiSdkFailureCode;
@@ -32,7 +32,7 @@ export type AiDocsGenerationEvent =
       };
     });
 
-export interface AiDocsTelemetrySummary {
+export interface AiAppAssistantTelemetrySummary {
   requests: number;
   succeeded: number;
   failed: number;
@@ -43,22 +43,22 @@ export interface AiDocsTelemetrySummary {
   failuresByCode: Partial<Record<AiSdkFailureCode, number>>;
 }
 
-export type AiDocsRecentFailure = Extract<AiDocsGenerationEvent, { outcome: "failure" }>;
+export type AiAppAssistantRecentFailure = Extract<AiAppAssistantGenerationEvent, { outcome: "failure" }>;
 
 /** Persistence contract used by the managed server and reusable by any host. */
-export interface AiDocsTelemetryStore {
-  record(event: AiDocsGenerationEvent): Promise<void>;
-  summary(): Promise<AiDocsTelemetrySummary>;
-  recentFailures(limit?: number): Promise<AiDocsRecentFailure[]>;
+export interface AiAppAssistantTelemetryStore {
+  record(event: AiAppAssistantGenerationEvent): Promise<void>;
+  summary(): Promise<AiAppAssistantTelemetrySummary>;
+  recentFailures(limit?: number): Promise<AiAppAssistantRecentFailure[]>;
 }
 
 /** Single-process telemetry intended for tests and local development. */
-export function createMemoryAiDocsTelemetryStore(options?: {
+export function createMemoryAiAppAssistantTelemetryStore(options?: {
   recentFailureLimit?: number;
-}): AiDocsTelemetryStore {
+}): AiAppAssistantTelemetryStore {
   const recentFailureLimit = normalizeLimit(options?.recentFailureLimit, 100);
   const aggregate = emptySummary();
-  const failures: AiDocsRecentFailure[] = [];
+  const failures: AiAppAssistantRecentFailure[] = [];
   return {
     async record(event) {
       aggregate.requests += 1;
@@ -84,7 +84,7 @@ export function createMemoryAiDocsTelemetryStore(options?: {
 }
 
 /** Minimal Redis shape; compatible with ioredis without adding it as a dependency. */
-export interface AiDocsRedisTelemetryClient {
+export interface AiAppAssistantRedisTelemetryClient {
   eval(script: string, numberOfKeys: number, ...args: Array<string | number>): Promise<unknown>;
 }
 
@@ -92,11 +92,11 @@ export interface AiDocsRedisTelemetryClient {
  * Shared Redis telemetry. One Lua call atomically updates counters and keeps a
  * bounded failure list, so several application instances can safely share it.
  */
-export function createRedisAiDocsTelemetryStore(
-  client: AiDocsRedisTelemetryClient,
+export function createRedisAiAppAssistantTelemetryStore(
+  client: AiAppAssistantRedisTelemetryClient,
   options?: { prefix?: string; recentFailureLimit?: number }
-): AiDocsTelemetryStore {
-  const prefix = options?.prefix ?? "ai-docs:telemetry:";
+): AiAppAssistantTelemetryStore {
+  const prefix = options?.prefix ?? "ai-app-assistant:telemetry:";
   const summaryKey = `${prefix}summary`;
   const failuresKey = `${prefix}failures`;
   const recentFailureLimit = normalizeLimit(options?.recentFailureLimit, 100);
@@ -147,7 +147,7 @@ export function createRedisAiDocsTelemetryStore(
       const values = Array.isArray(raw) ? raw.map(String) : [];
       return values.flatMap((value) => {
         try {
-          const parsed = JSON.parse(value) as AiDocsRecentFailure;
+          const parsed = JSON.parse(value) as AiAppAssistantRecentFailure;
           return parsed?.outcome === "failure" ? [parsed] : [];
         } catch {
           return [];
@@ -158,13 +158,13 @@ export function createRedisAiDocsTelemetryStore(
 }
 
 /** Converts any generator error to the same safe public diagnostic. */
-export function createAiDocsFailureEvent(input: {
+export function createAiAppAssistantFailureEvent(input: {
   error: unknown;
   requestId: string;
-  operation: AiDocsGenerationOperation;
+  operation: AiAppAssistantGenerationOperation;
   model: string;
   durationMs: number;
-}): AiDocsRecentFailure {
+}): AiAppAssistantRecentFailure {
   const failure = input.error instanceof AiSdkGenerationError
     ? input.error
     : normalizeAiSdkGenerationError(input.error, 1);
@@ -202,7 +202,7 @@ const REDIS_RECORD_SCRIPT = [
   "return 1"
 ].join("\n");
 
-function emptySummary(): AiDocsTelemetrySummary {
+function emptySummary(): AiAppAssistantTelemetrySummary {
   return {
     requests: 0,
     succeeded: 0,
@@ -215,7 +215,7 @@ function emptySummary(): AiDocsTelemetrySummary {
   };
 }
 
-function addUsage(summary: AiDocsTelemetrySummary, usage?: TokenUsage): void {
+function addUsage(summary: AiAppAssistantTelemetrySummary, usage?: TokenUsage): void {
   summary.inputTokens += usage?.inputTokens ?? 0;
   summary.outputTokens += usage?.outputTokens ?? 0;
   summary.totalTokens += usage?.totalTokens ?? 0;

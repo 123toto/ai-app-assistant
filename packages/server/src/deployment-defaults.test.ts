@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createAiDocsDeploymentDefaults } from "./deployment-defaults.js";
+import { createAiAppAssistantDeploymentDefaults } from "./deployment-defaults.js";
 
-describe("createAiDocsDeploymentDefaults", () => {
+describe("createAiAppAssistantDeploymentDefaults", () => {
   it("parses aliases and exposes only the active provider key", () => {
-    const defaults = createAiDocsDeploymentDefaults({
+    const defaults = createAiAppAssistantDeploymentDefaults({
       enabled: true,
       model: "gemini:gemini-2.5-flash",
       apiKeys: { google: " google-key ", mistral: "mistral-key" },
@@ -20,6 +20,6 @@ describe("createAiDocsDeploymentDefaults", () => {
   });
 
   it("returns no configuration when disabled", () => {
-    expect(createAiDocsDeploymentDefaults({ enabled: false }).configuration).toBeUndefined();
+    expect(createAiAppAssistantDeploymentDefaults({ enabled: false }).configuration).toBeUndefined();
   });
 });

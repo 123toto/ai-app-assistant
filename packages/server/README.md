@@ -1,6 +1,6 @@
 # @123toto/ai-app-assistant-server
 
-Framework-neutral Node.js backend for contextual in-app AI documentation.
+Framework-neutral Node.js backend for contextual AI App Assistant integrations.
 
 ```bash
 npm install @123toto/ai-app-assistant-server
@@ -11,9 +11,9 @@ Node.js 20 or later is required.
 ## Minimal server
 
 ```ts
-import { createAiDocsServer } from "@123toto/ai-app-assistant-server";
+import { createAiAppAssistantServer } from "@123toto/ai-app-assistant-server";
 
-const aiDocs = createAiDocsServer({
+const aiAppAssistant = createAiAppAssistantServer({
   model: "mistral:mistral-small-latest",
   documents,
   http: {
@@ -22,14 +22,14 @@ const aiDocs = createAiDocsServer({
   }
 });
 
-export const POST = (request: Request) => aiDocs.fetch.handle(request);
+export const POST = (request: Request) => aiAppAssistant.fetch.handle(request);
 ```
 
 The selected provider reads its conventional API key from the backend environment. `allowAnonymous: true` is available only for deliberately public prototypes.
 
 ## Managed server
 
-`createManagedAiDocsServer()` adds optional administration features without changing the minimal API:
+`createManagedAiAppAssistantServer()` adds optional administration features without changing the minimal API:
 
 - provider and model discovery;
 - encrypted API-key persistence;
@@ -40,12 +40,12 @@ The selected provider reads its conventional API key from the backend environmen
 - complete Fetch API handlers for chat and administration.
 
 ```ts
-import { createManagedAiDocsServer } from "@123toto/ai-app-assistant-server";
+import { createManagedAiAppAssistantServer } from "@123toto/ai-app-assistant-server";
 
-const aiDocs = createManagedAiDocsServer({
+const aiAppAssistant = createManagedAiAppAssistantServer({
   configuration: {
     storage: { type: "redis", client: redis },
-    encryptionKey: process.env.AI_DOCS_SECRET_ENCRYPTION_KEY!,
+    encryptionKey: process.env.AI_APP_ASSISTANT_SECRET_ENCRYPTION_KEY!,
     defaultConfiguration: {
       provider: "mistral",
       model: "mistral-small-latest",
@@ -60,22 +60,22 @@ const aiDocs = createManagedAiDocsServer({
   }
 });
 
-await aiDocs.initialize();
+await aiAppAssistant.initialize();
 ```
 
-Documents may also be loaded after application bootstrap with `aiDocs.setDocuments(documents)`.
+Documents may also be loaded after application bootstrap with `aiAppAssistant.setDocuments(documents)`.
 
 ## Framework connectors
 
 ```ts
-import { createManagedAiDocsExpressHandler } from "@123toto/ai-app-assistant-server/express";
+import { createManagedAiAppAssistantExpressHandler } from "@123toto/ai-app-assistant-server/express";
 
-app.use("/api/ai-docs", createManagedAiDocsExpressHandler(aiDocs));
+app.use("/api/ai-app-assistant", createManagedAiAppAssistantExpressHandler(aiAppAssistant));
 ```
 
-For Nest, import `createManagedAiDocsNestModule` from `@123toto/ai-app-assistant-server/nest`. Nest, RxJS and reflect-metadata are optional peer dependencies and are not required by other consumers.
+For Nest, import `createManagedAiAppAssistantNestModule` from `@123toto/ai-app-assistant-server/nest`. Nest, RxJS and reflect-metadata are optional peer dependencies and are not required by other consumers.
 
-Native Node and Fetch-compatible runtimes can use `createAiDocsNodeHttpListener` or the standard `Request`/`Response` handlers.
+Native Node and Fetch-compatible runtimes can use `createAiAppAssistantNodeHttpListener` or the standard `Request`/`Response` handlers.
 
 ## Providers
 

@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  createMemoryAiDocsQuotaStore,
-  createRedisAiDocsQuotaStore
+  createMemoryAiAppAssistantQuotaStore,
+  createRedisAiAppAssistantQuotaStore
 } from "./quota.js";
 
-describe("AI Docs quota stores", () => {
+describe("AI App Assistant quota stores", () => {
   it("enforces a fixed window in memory", async () => {
-    const store = createMemoryAiDocsQuotaStore();
+    const store = createMemoryAiAppAssistantQuotaStore();
     const policy = { maxRequests: 2, windowSeconds: 60 };
 
     await expect(store.consume("user@example.test", policy)).resolves.toMatchObject({ allowed: true, remaining: 1 });
@@ -16,7 +16,7 @@ describe("AI Docs quota stores", () => {
 
   it("uses one atomic Redis operation and hashes the subject", async () => {
     const redis = { eval: vi.fn().mockResolvedValue([3, 42]) };
-    const store = createRedisAiDocsQuotaStore(redis, { prefix: "test-app:quota:" });
+    const store = createRedisAiAppAssistantQuotaStore(redis, { prefix: "test-app:quota:" });
 
     await expect(store.consume("visible-user-id", { maxRequests: 2, windowSeconds: 60 }))
       .resolves.toMatchObject({ allowed: false, retryAfterSeconds: 42 });

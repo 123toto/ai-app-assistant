@@ -1,20 +1,20 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  createAiDocsConfigurationRepository,
-  createMemoryAiDocsStore
+  createAiAppAssistantConfigurationRepository,
+  createMemoryAiAppAssistantStore
 } from "./configuration.js";
-import { AiDocsConfigurationManager } from "./management.js";
-import { createManagedAiDocsRuntime } from "./managed-runtime.js";
+import { AiAppAssistantConfigurationManager } from "./management.js";
+import { createManagedAiAppAssistantRuntime } from "./managed-runtime.js";
 import type { AnswerGenerator } from "./types.js";
-import { createMemoryAiDocsTelemetryStore } from "./telemetry.js";
+import { createMemoryAiAppAssistantTelemetryStore } from "./telemetry.js";
 
-describe("createManagedAiDocsRuntime", () => {
+describe("createManagedAiAppAssistantRuntime", () => {
   it("initializes and automatically rebuilds after a connection change", async () => {
-    const repository = createAiDocsConfigurationRepository({
-      store: createMemoryAiDocsStore(),
+    const repository = createAiAppAssistantConfigurationRepository({
+      store: createMemoryAiAppAssistantStore(),
       secretProtector: { protect: String, unprotect: String }
     });
-    const configuration = new AiDocsConfigurationManager({
+    const configuration = new AiAppAssistantConfigurationManager({
       repository,
       defaultConfiguration: {
         provider: "ollama",
@@ -28,7 +28,7 @@ describe("createManagedAiDocsRuntime", () => {
       })
     });
     const createGenerator = vi.fn(({ model }: { model: string }) => generator(model));
-    const runtime = createManagedAiDocsRuntime({ configuration, createGenerator });
+    const runtime = createManagedAiAppAssistantRuntime({ configuration, createGenerator });
     await runtime.initialize();
 
     const first = await runtime.answer(request("first"), { id: "user", label: "User" });
@@ -48,12 +48,12 @@ describe("createManagedAiDocsRuntime", () => {
   it("recovers lazily after a temporary provider failure", async () => {
     vi.useFakeTimers();
     try {
-      const repository = createAiDocsConfigurationRepository({
-        store: createMemoryAiDocsStore(),
+      const repository = createAiAppAssistantConfigurationRepository({
+        store: createMemoryAiAppAssistantStore(),
         secretProtector: { protect: String, unprotect: String }
       });
       let attempts = 0;
-      const configuration = new AiDocsConfigurationManager({
+      const configuration = new AiAppAssistantConfigurationManager({
         repository,
         defaultConfiguration: { provider: "ollama", model: "qwen3", access: { mode: "all" } },
         reconnectIntervalMs: 1_000,
@@ -66,7 +66,7 @@ describe("createManagedAiDocsRuntime", () => {
             }
           : { success: true, model: `${provider}:${model}`, latencyMs: 1 }
       });
-      const runtime = createManagedAiDocsRuntime({ configuration, createGenerator: ({ model }) => generator(model) });
+      const runtime = createManagedAiAppAssistantRuntime({ configuration, createGenerator: ({ model }) => generator(model) });
       await runtime.initialize();
       await vi.advanceTimersByTimeAsync(1_001);
 
@@ -80,17 +80,17 @@ describe("createManagedAiDocsRuntime", () => {
   });
 
   it("records one safe event with token usage per completed request", async () => {
-    const repository = createAiDocsConfigurationRepository({
-      store: createMemoryAiDocsStore(),
+    const repository = createAiAppAssistantConfigurationRepository({
+      store: createMemoryAiAppAssistantStore(),
       secretProtector: { protect: String, unprotect: String }
     });
-    const configuration = new AiDocsConfigurationManager({
+    const configuration = new AiAppAssistantConfigurationManager({
       repository,
       defaultConfiguration: { provider: "ollama", model: "qwen3", access: { mode: "all" } },
       testConnection: async () => ({ success: true, model: "ollama:qwen3", latencyMs: 1 })
     });
-    const telemetryStore = createMemoryAiDocsTelemetryStore();
-    const runtime = createManagedAiDocsRuntime({
+    const telemetryStore = createMemoryAiAppAssistantTelemetryStore();
+    const runtime = createManagedAiAppAssistantRuntime({
       configuration,
       telemetryStore,
       createGenerator: ({ model }) => ({
@@ -122,7 +122,7 @@ describe("createManagedAiDocsRuntime", () => {
 
 function request(id: string) {
   return {
-    protocolVersion: "3" as const,
+    protocolVersion: "4" as const,
     requestId: id,
     html: "<main>Example</main>",
     question: "Explain",

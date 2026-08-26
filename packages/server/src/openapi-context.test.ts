@@ -7,15 +7,15 @@ describe("filterOpenApiContext", () => {
       openapi: "3.0.0",
       paths: {
         "/assessment/items": { get: {} },
-        "/ai-docs/ask": { post: {} }
+        "/ai-app-assistant/ask": { post: {} }
       },
-      components: { schemas: { Item: {}, AiDocsConfiguration: {} } },
-      tags: [{ name: "Assessment" }, { name: "AI documentation" }]
+      components: { schemas: { Item: {}, AiAppAssistantConfiguration: {} } },
+      tags: [{ name: "Assessment" }, { name: "AI App Assistant" }]
     };
     const result = filterOpenApiContext(document, {
-      excludePathPrefixes: ["/ai-docs"],
-      excludeSchemaNames: /ai.?docs/i,
-      excludeTagNames: /ai documentation/i
+      excludePathPrefixes: ["/ai-app-assistant"],
+      excludeSchemaNames: /ai.?app.?assistant/i,
+      excludeTagNames: /ai app assistant/i
     }) as typeof document;
 
     expect(Object.keys(result.paths)).toEqual(["/assessment/items"]);

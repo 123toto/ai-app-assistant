@@ -1,49 +1,49 @@
 import type {
-  AiDocsConfigurationInput,
-  AiDocsConfigurationOptions,
-  AiDocsAccessView,
-  AiDocsConnectionResult,
-  AiDocsConnectionTestInput,
-  AiDocsCredentials,
-  AiDocsManagedConfigurationView,
-  AiDocsModelInfoContract,
-  AiDocsProviderInfoContract
+  AiAppAssistantConfigurationInput,
+  AiAppAssistantConfigurationOptions,
+  AiAppAssistantAccessView,
+  AiAppAssistantConnectionResult,
+  AiAppAssistantConnectionTestInput,
+  AiAppAssistantCredentials,
+  AiAppAssistantManagedConfigurationView,
+  AiAppAssistantModelInfoContract,
+  AiAppAssistantProviderInfoContract
 } from "@123toto/ai-app-assistant-contracts";
 import {
-  aiDocsConfigurationOptionsSchema,
-  aiDocsAccessViewSchema,
-  aiDocsConfigurationSaveResultSchema,
-  aiDocsConnectionResultSchema,
-  aiDocsManagedConfigurationViewSchema,
-  aiDocsModelInfoSchema,
-  aiDocsProviderInfoSchema
+  aiAppAssistantConfigurationOptionsSchema,
+  aiAppAssistantAccessViewSchema,
+  aiAppAssistantConfigurationSaveResultSchema,
+  aiAppAssistantConnectionResultSchema,
+  aiAppAssistantManagedConfigurationViewSchema,
+  aiAppAssistantModelInfoSchema,
+  aiAppAssistantProviderInfoSchema
 } from "@123toto/ai-app-assistant-contracts";
-import { AiDocsHttpError } from "./client.js";
+import { AiAppAssistantHttpError } from "./client.js";
 
-export interface AiDocsSettingsClientOptions {
-  /** Base endpoint, for example `/api/ai-docs`. */
+export interface AiAppAssistantSettingsClientOptions {
+  /** Base endpoint, for example `/api/ai-app-assistant`. */
   endpoint: string;
   fetch?: typeof globalThis.fetch;
   headers?: () => HeadersInit | Promise<HeadersInit>;
 }
 
-export interface AiDocsSettingsClient {
-  getAccess(): Promise<AiDocsAccessView>;
-  getConfiguration(): Promise<AiDocsManagedConfigurationView>;
-  getOptions(): Promise<AiDocsConfigurationOptions>;
-  listProviders(): Promise<AiDocsProviderInfoContract[]>;
-  listModels(input: AiDocsCredentials): Promise<AiDocsModelInfoContract[]>;
-  testConnection(input: AiDocsConnectionTestInput): Promise<AiDocsConnectionResult>;
-  save(input: AiDocsConfigurationInput): Promise<{
+export interface AiAppAssistantSettingsClient {
+  getAccess(): Promise<AiAppAssistantAccessView>;
+  getConfiguration(): Promise<AiAppAssistantManagedConfigurationView>;
+  getOptions(): Promise<AiAppAssistantConfigurationOptions>;
+  listProviders(): Promise<AiAppAssistantProviderInfoContract[]>;
+  listModels(input: AiAppAssistantCredentials): Promise<AiAppAssistantModelInfoContract[]>;
+  testConnection(input: AiAppAssistantConnectionTestInput): Promise<AiAppAssistantConnectionResult>;
+  save(input: AiAppAssistantConfigurationInput): Promise<{
     saved: boolean;
-    connection: AiDocsConnectionResult;
-    configuration?: AiDocsManagedConfigurationView | undefined;
+    connection: AiAppAssistantConnectionResult;
+    configuration?: AiAppAssistantManagedConfigurationView | undefined;
   }>;
-  revokeApiKey(): Promise<AiDocsManagedConfigurationView>;
+  revokeApiKey(): Promise<AiAppAssistantManagedConfigurationView>;
 }
 
 /** Small framework-neutral client for the optional managed settings API. */
-export function createAiDocsSettingsClient(options: AiDocsSettingsClientOptions): AiDocsSettingsClient {
+export function createAiAppAssistantSettingsClient(options: AiAppAssistantSettingsClientOptions): AiAppAssistantSettingsClient {
   const fetchImplementation = options.fetch ?? globalThis.fetch;
   if (!fetchImplementation) throw new Error("A fetch implementation is required.");
   const endpoint = options.endpoint.replace(/\/+$/, "");
@@ -62,61 +62,61 @@ export function createAiDocsSettingsClient(options: AiDocsSettingsClientOptions)
         ...init.headers
       }
     });
-    if (!response.ok) throw new AiDocsHttpError(response.status, await response.text());
+    if (!response.ok) throw new AiAppAssistantHttpError(response.status, await response.text());
     return schema.parse(await response.json() as unknown);
   };
 
   return {
-    getAccess: () => request("/access", aiDocsAccessViewSchema),
-    getConfiguration: () => request("/configuration", aiDocsManagedConfigurationViewSchema),
-    getOptions: () => request("/configuration/options", aiDocsConfigurationOptionsSchema),
-    listProviders: () => request("/providers", aiDocsProviderInfoSchema.array()),
-    listModels: (input) => request("/models", aiDocsModelInfoSchema.array(), {
+    getAccess: () => request("/access", aiAppAssistantAccessViewSchema),
+    getConfiguration: () => request("/configuration", aiAppAssistantManagedConfigurationViewSchema),
+    getOptions: () => request("/configuration/options", aiAppAssistantConfigurationOptionsSchema),
+    listProviders: () => request("/providers", aiAppAssistantProviderInfoSchema.array()),
+    listModels: (input) => request("/models", aiAppAssistantModelInfoSchema.array(), {
       method: "POST",
       body: JSON.stringify(input)
     }),
-    testConnection: (input) => request("/configuration/test", aiDocsConnectionResultSchema, {
+    testConnection: (input) => request("/configuration/test", aiAppAssistantConnectionResultSchema, {
       method: "POST",
       body: JSON.stringify(input)
     }),
-    save: (input) => request("/configuration", aiDocsConfigurationSaveResultSchema, {
+    save: (input) => request("/configuration", aiAppAssistantConfigurationSaveResultSchema, {
       method: "PUT",
       body: JSON.stringify(input)
     }),
-    revokeApiKey: () => request("/configuration/api-key", aiDocsManagedConfigurationViewSchema, {
+    revokeApiKey: () => request("/configuration/api-key", aiAppAssistantManagedConfigurationViewSchema, {
       method: "DELETE"
     })
   };
 }
 
-export interface AiDocsSettingsSnapshot {
+export interface AiAppAssistantSettingsSnapshot {
   status: "idle" | "loading" | "ready" | "saving" | "testing" | "loading-models" | "error";
-  configuration?: AiDocsManagedConfigurationView;
-  providers: readonly AiDocsProviderInfoContract[];
-  models: readonly AiDocsModelInfoContract[];
-  options: AiDocsConfigurationOptions;
+  configuration?: AiAppAssistantManagedConfigurationView;
+  providers: readonly AiAppAssistantProviderInfoContract[];
+  models: readonly AiAppAssistantModelInfoContract[];
+  options: AiAppAssistantConfigurationOptions;
   /** False when the host deliberately exposes no role/user directory adapter. */
   optionsAvailable: boolean;
-  connectionTest?: AiDocsConnectionResult;
+  connectionTest?: AiAppAssistantConnectionResult;
   error?: Error | undefined;
 }
 
-export type AiDocsSettingsListener = (snapshot: AiDocsSettingsSnapshot) => void;
+export type AiAppAssistantSettingsListener = (snapshot: AiAppAssistantSettingsSnapshot) => void;
 
 /** Reusable state controller for Angular, React, Vue or a custom settings page. */
-export class AiDocsSettingsController {
-  #snapshot: AiDocsSettingsSnapshot = {
+export class AiAppAssistantSettingsController {
+  #snapshot: AiAppAssistantSettingsSnapshot = {
     status: "idle",
     providers: [],
     models: [],
     options: { roles: [], users: [] },
     optionsAvailable: false
   };
-  readonly #listeners = new Set<AiDocsSettingsListener>();
+  readonly #listeners = new Set<AiAppAssistantSettingsListener>();
 
-  public constructor(readonly client: AiDocsSettingsClient) {}
+  public constructor(readonly client: AiAppAssistantSettingsClient) {}
 
-  public get snapshot(): AiDocsSettingsSnapshot {
+  public get snapshot(): AiAppAssistantSettingsSnapshot {
     return {
       ...this.#snapshot,
       providers: [...this.#snapshot.providers],
@@ -128,14 +128,14 @@ export class AiDocsSettingsController {
     };
   }
 
-  public subscribe(listener: AiDocsSettingsListener): () => void {
+  public subscribe(listener: AiAppAssistantSettingsListener): () => void {
     this.#listeners.add(listener);
     listener(this.snapshot);
     return () => this.#listeners.delete(listener);
   }
 
   /** Loads all non-secret values required by a settings screen. */
-  public async initialize(): Promise<AiDocsSettingsSnapshot> {
+  public async initialize(): Promise<AiAppAssistantSettingsSnapshot> {
     this.update({ status: "loading", error: undefined });
     try {
       const [configuration, providers, directory] = await Promise.all([
@@ -160,7 +160,7 @@ export class AiDocsSettingsController {
   }
 
   /** Loads provider models; the configured secret can stay server-side. */
-  public async loadModels(input: AiDocsCredentials): Promise<readonly AiDocsModelInfoContract[]> {
+  public async loadModels(input: AiAppAssistantCredentials): Promise<readonly AiAppAssistantModelInfoContract[]> {
     this.update({ status: "loading-models", error: undefined });
     try {
       const models = await this.client.listModels(input);
@@ -172,7 +172,7 @@ export class AiDocsSettingsController {
   }
 
   /** Tests a draft connection without persisting it. */
-  public async test(input: AiDocsConnectionTestInput): Promise<AiDocsConnectionResult> {
+  public async test(input: AiAppAssistantConnectionTestInput): Promise<AiAppAssistantConnectionResult> {
     this.update({ status: "testing", error: undefined });
     try {
       const connectionTest = await this.client.testConnection(input);
@@ -184,7 +184,7 @@ export class AiDocsSettingsController {
   }
 
   /** Persists only when the server accepts any connection-sensitive changes. */
-  public async save(input: AiDocsConfigurationInput): Promise<boolean> {
+  public async save(input: AiAppAssistantConfigurationInput): Promise<boolean> {
     this.update({ status: "saving", error: undefined });
     try {
       const result = await this.client.save(input);
@@ -211,7 +211,7 @@ export class AiDocsSettingsController {
     }
   }
 
-  private update(patch: Partial<AiDocsSettingsSnapshot>): void {
+  private update(patch: Partial<AiAppAssistantSettingsSnapshot>): void {
     this.#snapshot = { ...this.#snapshot, ...patch };
     for (const listener of this.#listeners) listener(this.snapshot);
   }

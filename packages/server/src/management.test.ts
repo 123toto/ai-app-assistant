@@ -1,21 +1,21 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  createAiDocsConfigurationRepository,
-  createMemoryAiDocsStore,
-  type AiDocsSecretProtector
+  createAiAppAssistantConfigurationRepository,
+  createMemoryAiAppAssistantStore,
+  type AiAppAssistantSecretProtector
 } from "./configuration.js";
 import {
-  AiDocsConfigurationManager,
-  createPollingAiDocsConfigurationSynchronizer
+  AiAppAssistantConfigurationManager,
+  createPollingAiAppAssistantConfigurationSynchronizer
 } from "./management.js";
 
 const actor = { id: "user-a", label: "User A", roles: ["admin"] };
-const protector: AiDocsSecretProtector = {
+const protector: AiAppAssistantSecretProtector = {
   protect: (value) => `protected:${value}`,
   unprotect: (value) => value.slice("protected:".length)
 };
 
-describe("AiDocsConfigurationManager", () => {
+describe("AiAppAssistantConfigurationManager", () => {
   it("owns the full safe configuration lifecycle", async () => {
     const testConnection = vi.fn(async ({ provider, model }) => ({
       success: true as const,
@@ -129,13 +129,13 @@ describe("AiDocsConfigurationManager", () => {
   });
 });
 
-describe("createPollingAiDocsConfigurationSynchronizer", () => {
+describe("createPollingAiAppAssistantConfigurationSynchronizer", () => {
   it("notifies other instances but not the publisher", async () => {
     vi.useFakeTimers();
     try {
-      const store = createMemoryAiDocsStore();
-      const first = createPollingAiDocsConfigurationSynchronizer(store, { intervalMs: 250 });
-      const second = createPollingAiDocsConfigurationSynchronizer(store, { intervalMs: 250 });
+      const store = createMemoryAiAppAssistantStore();
+      const first = createPollingAiAppAssistantConfigurationSynchronizer(store, { intervalMs: 250 });
+      const second = createPollingAiAppAssistantConfigurationSynchronizer(store, { intervalMs: 250 });
       const firstChanged = vi.fn();
       const secondChanged = vi.fn();
       const stopFirst = await first.start(firstChanged);
@@ -162,22 +162,22 @@ describe("createPollingAiDocsConfigurationSynchronizer", () => {
   it("does not retest providers on remote auxiliary changes", async () => {
     vi.useFakeTimers();
     try {
-      const store = createMemoryAiDocsStore();
+      const store = createMemoryAiAppAssistantStore();
       const firstTest = vi.fn(async ({ provider, model }) => ({
         success: true as const, model: `${provider}:${model}`, latencyMs: 1
       }));
       const secondTest = vi.fn(async ({ provider, model }) => ({
         success: true as const, model: `${provider}:${model}`, latencyMs: 1
       }));
-      const first = new AiDocsConfigurationManager({
-        repository: createAiDocsConfigurationRepository({ store, secretProtector: protector }),
-        synchronizer: createPollingAiDocsConfigurationSynchronizer(store, { key: "revision", intervalMs: 250 }),
+      const first = new AiAppAssistantConfigurationManager({
+        repository: createAiAppAssistantConfigurationRepository({ store, secretProtector: protector }),
+        synchronizer: createPollingAiAppAssistantConfigurationSynchronizer(store, { key: "revision", intervalMs: 250 }),
         apiKeyStorageAvailable: true,
         testConnection: firstTest
       });
-      const second = new AiDocsConfigurationManager({
-        repository: createAiDocsConfigurationRepository({ store, secretProtector: protector }),
-        synchronizer: createPollingAiDocsConfigurationSynchronizer(store, { key: "revision", intervalMs: 250 }),
+      const second = new AiAppAssistantConfigurationManager({
+        repository: createAiAppAssistantConfigurationRepository({ store, secretProtector: protector }),
+        synchronizer: createPollingAiAppAssistantConfigurationSynchronizer(store, { key: "revision", intervalMs: 250 }),
         apiKeyStorageAvailable: true,
         testConnection: secondTest
       });
@@ -207,12 +207,12 @@ describe("createPollingAiDocsConfigurationSynchronizer", () => {
   });
 });
 
-function createManager(overrides: Partial<ConstructorParameters<typeof AiDocsConfigurationManager>[0]> = {}) {
-  const repository = createAiDocsConfigurationRepository({
-    store: createMemoryAiDocsStore(),
+function createManager(overrides: Partial<ConstructorParameters<typeof AiAppAssistantConfigurationManager>[0]> = {}) {
+  const repository = createAiAppAssistantConfigurationRepository({
+    store: createMemoryAiAppAssistantStore(),
     secretProtector: protector
   });
-  return new AiDocsConfigurationManager({
+  return new AiAppAssistantConfigurationManager({
     repository,
     apiKeyStorageAvailable: true,
     ...overrides

@@ -1,26 +1,26 @@
 import type {
-  AskDocumentationRequest,
-  AskDocumentationResponse
+  AiAppAssistantRequest,
+  AiAppAssistantResponse
 } from "@123toto/ai-app-assistant-contracts";
 import { createAiSdkGenerator } from "./ai-sdk.js";
-import { createDocsAssistant, type DocsAssistant, type DocsAssistantStreamEvent } from "./assistant.js";
+import { createAiAppAssistant, type AiAppAssistant, type AiAppAssistantStreamEvent } from "./assistant.js";
 import {
-  AiDocsConfigurationManager,
-  AiDocsManagementError,
-  type AiDocsConfigurationChangeEvent,
-  type AiDocsRuntimeIdentity
+  AiAppAssistantConfigurationManager,
+  AiAppAssistantManagementError,
+  type AiAppAssistantConfigurationChangeEvent,
+  type AiAppAssistantRuntimeIdentity
 } from "./management.js";
-import type { AnswerGenerator, DocumentationSource, DocsAssistantOptions } from "./types.js";
+import type { AnswerGenerator, DocumentationSource, AiAppAssistantOptions } from "./types.js";
 import {
-  createAiDocsFailureEvent,
-  type AiDocsGenerationEvent,
-  type AiDocsTelemetryStore
+  createAiAppAssistantFailureEvent,
+  type AiAppAssistantGenerationEvent,
+  type AiAppAssistantTelemetryStore
 } from "./telemetry.js";
 
-type AssistantPolicies = NonNullable<DocsAssistantOptions["policies"]>;
+type AssistantPolicies = NonNullable<AiAppAssistantOptions["policies"]>;
 
-export interface CreateManagedAiDocsRuntimeOptions<TIdentity extends AiDocsRuntimeIdentity> {
-  configuration: AiDocsConfigurationManager;
+export interface CreateManagedAiAppAssistantRuntimeOptions<TIdentity extends AiAppAssistantRuntimeIdentity> {
+  configuration: AiAppAssistantConfigurationManager;
   documents?: DocumentationSource[];
   policies?: AssistantPolicies;
   /** Overrides the built-in `provider:model` AI SDK generator. */
@@ -32,17 +32,17 @@ export interface CreateManagedAiDocsRuntimeOptions<TIdentity extends AiDocsRunti
   timeoutMs?: number;
   maxRetries?: number;
   transformRequest?: (
-    input: AskDocumentationRequest,
+    input: AiAppAssistantRequest,
     identity: TIdentity
-  ) => AskDocumentationRequest | Promise<AskDocumentationRequest>;
+  ) => AiAppAssistantRequest | Promise<AiAppAssistantRequest>;
   transformResponse?: (
-    output: AskDocumentationResponse,
+    output: AiAppAssistantResponse,
     identity: TIdentity
-  ) => AskDocumentationResponse | Promise<AskDocumentationResponse>;
+  ) => AiAppAssistantResponse | Promise<AiAppAssistantResponse>;
   transformStreamEvent?: (
-    event: DocsAssistantStreamEvent,
+    event: AiAppAssistantStreamEvent,
     identity: TIdentity
-  ) => DocsAssistantStreamEvent | Promise<DocsAssistantStreamEvent>;
+  ) => AiAppAssistantStreamEvent | Promise<AiAppAssistantStreamEvent>;
   authorize?: (identity: TIdentity) => Promise<void> | void;
   /** Receives provider/runtime failures without exposing prompts or credentials. */
   onGenerationError?: (
@@ -52,37 +52,37 @@ export interface CreateManagedAiDocsRuntimeOptions<TIdentity extends AiDocsRunti
   ) => Promise<void> | void;
   /** Receives one safe success/failure event per user request. */
   onGenerationEvent?: (
-    event: AiDocsGenerationEvent,
+    event: AiAppAssistantGenerationEvent,
     identity: TIdentity
   ) => Promise<void> | void;
   /** Optional persistence used by the batteries-included managed server. */
-  telemetryStore?: AiDocsTelemetryStore;
+  telemetryStore?: AiAppAssistantTelemetryStore;
 }
 
-export interface ManagedAiDocsRuntime<TIdentity extends AiDocsRuntimeIdentity> {
-  readonly configuration: AiDocsConfigurationManager;
-  readonly telemetry?: AiDocsTelemetryStore;
+export interface ManagedAiAppAssistantRuntime<TIdentity extends AiAppAssistantRuntimeIdentity> {
+  readonly configuration: AiAppAssistantConfigurationManager;
+  readonly telemetry?: AiAppAssistantTelemetryStore;
   initialize(): Promise<void>;
   dispose(): void;
   reload(connectionAlreadyValidated?: boolean): Promise<void>;
   /** Replaces the stable documentation without recreating the configuration manager. */
   setDocuments(documents: DocumentationSource[]): Promise<void>;
-  answer(input: AskDocumentationRequest, identity: TIdentity): Promise<AskDocumentationResponse>;
+  answer(input: AiAppAssistantRequest, identity: TIdentity): Promise<AiAppAssistantResponse>;
   stream(
-    input: AskDocumentationRequest,
+    input: AiAppAssistantRequest,
     identity: TIdentity,
     signal?: AbortSignal
-  ): AsyncGenerator<DocsAssistantStreamEvent, AskDocumentationResponse>;
+  ): AsyncGenerator<AiAppAssistantStreamEvent, AiAppAssistantResponse>;
 }
 
 /**
- * Optional batteries-included runtime. The minimal `createDocsAssistant` API
+ * Optional batteries-included runtime. The minimal `createAiAppAssistant` API
  * remains available for applications that want to own the lifecycle.
  */
-export function createManagedAiDocsRuntime<TIdentity extends AiDocsRuntimeIdentity>(
-  options: CreateManagedAiDocsRuntimeOptions<TIdentity>
-): ManagedAiDocsRuntime<TIdentity> {
-  let assistant: DocsAssistant | undefined;
+export function createManagedAiAppAssistantRuntime<TIdentity extends AiAppAssistantRuntimeIdentity>(
+  options: CreateManagedAiAppAssistantRuntimeOptions<TIdentity>
+): ManagedAiAppAssistantRuntime<TIdentity> {
+  let assistant: AiAppAssistant | undefined;
   let activeGenerator: AnswerGenerator | undefined;
   let documents = [...(options.documents ?? [])];
   let initialized = false;
@@ -94,7 +94,7 @@ export function createManagedAiDocsRuntime<TIdentity extends AiDocsRuntimeIdenti
   });
 
   /** Recreates the assistant only when a usable provider connection exists. */
-  const rebuild = async (event: Pick<AiDocsConfigurationChangeEvent, "connectionValidated">): Promise<void> => {
+  const rebuild = async (event: Pick<AiAppAssistantConfigurationChangeEvent, "connectionValidated">): Promise<void> => {
     const connected = event.connectionValidated || await options.configuration.validateRuntimeConnection();
     const configuration = await options.configuration.getRuntimeConfiguration();
     if (!connected || !configuration) {
@@ -116,7 +116,7 @@ export function createManagedAiDocsRuntime<TIdentity extends AiDocsRuntimeIdenti
           ...(options.maxRetries !== undefined ? { maxRetries: options.maxRetries } : {})
         });
     activeGenerator = generator;
-    assistant = createDocsAssistant({
+    assistant = createAiAppAssistant({
       generator,
       documents,
       ...(options.policies ? { policies: options.policies } : {})
@@ -130,14 +130,14 @@ export function createManagedAiDocsRuntime<TIdentity extends AiDocsRuntimeIdenti
   };
 
   const present = async (
-    response: AskDocumentationResponse,
+    response: AiAppAssistantResponse,
     identity: TIdentity
-  ): Promise<AskDocumentationResponse> => options.transformResponse
+  ): Promise<AiAppAssistantResponse> => options.transformResponse
     ? options.transformResponse(response, identity)
     : response;
 
   /** Records telemetry without ever changing the user-facing generation result. */
-  const observe = async (event: AiDocsGenerationEvent, identity: TIdentity): Promise<void> => {
+  const observe = async (event: AiAppAssistantGenerationEvent, identity: TIdentity): Promise<void> => {
     const tasks: Array<Promise<void>> = [];
     if (options.telemetryStore) tasks.push(options.telemetryStore.record(event));
     if (options.onGenerationEvent) tasks.push(Promise.resolve(options.onGenerationEvent(event, identity)));
@@ -169,7 +169,7 @@ export function createManagedAiDocsRuntime<TIdentity extends AiDocsRuntimeIdenti
     async setDocuments(nextDocuments) {
       documents = [...nextDocuments];
       if (!activeGenerator) return;
-      assistant = createDocsAssistant({
+      assistant = createAiAppAssistant({
         generator: activeGenerator,
         documents,
         ...(options.policies ? { policies: options.policies } : {})
@@ -195,7 +195,7 @@ export function createManagedAiDocsRuntime<TIdentity extends AiDocsRuntimeIdenti
         }, identity);
         return response;
       } catch (error) {
-        await observe(createAiDocsFailureEvent({
+        await observe(createAiAppAssistantFailureEvent({
           error,
           requestId: input.requestId,
           operation: "answer",
@@ -215,7 +215,7 @@ export function createManagedAiDocsRuntime<TIdentity extends AiDocsRuntimeIdenti
       const startedAt = Date.now();
       try {
         const generation = assistant.stream(prepared, signal ? { signal } : undefined);
-        let completedResponse: AskDocumentationResponse | undefined;
+        let completedResponse: AiAppAssistantResponse | undefined;
         while (true) {
           const next = await generation.next();
           if (next.done) {
@@ -239,7 +239,7 @@ export function createManagedAiDocsRuntime<TIdentity extends AiDocsRuntimeIdenti
           yield event;
         }
       } catch (error) {
-        await observe(createAiDocsFailureEvent({
+        await observe(createAiAppAssistantFailureEvent({
           error,
           requestId: input.requestId,
           operation: "stream",
@@ -253,8 +253,8 @@ export function createManagedAiDocsRuntime<TIdentity extends AiDocsRuntimeIdenti
   };
 }
 
-function unavailable(): AiDocsManagementError {
-  return new AiDocsManagementError(
+function unavailable(): AiAppAssistantManagementError {
+  return new AiAppAssistantManagementError(
     503,
     "not_configured",
     "AI assistant is not configured or connected"

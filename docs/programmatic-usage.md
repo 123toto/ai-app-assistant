@@ -15,15 +15,15 @@ npm install @123toto/ai-app-assistant-client
 
 ```ts
 import { readFile } from "node:fs/promises";
-import { createAiDocsServer } from "@123toto/ai-app-assistant-server";
+import { createAiAppAssistantServer } from "@123toto/ai-app-assistant-server";
 
 const [guide, openapi] = await Promise.all([
   readFile("./APP_GUIDE.md", "utf8"),
   readFile("./openapi.json", "utf8").then(JSON.parse)
 ]);
 
-const aiDocs = createAiDocsServer({
-  model: process.env.AI_DOCS_MODEL ?? "mistral:mistral-small-latest",
+const aiAppAssistant = createAiAppAssistantServer({
+  model: process.env.AI_APP_ASSISTANT_MODEL ?? "mistral:mistral-small-latest",
   documents: [
     { id: "guide", title: "Application guide", mediaType: "text/markdown", content: guide },
     { id: "openapi", title: "API documentation", mediaType: "application/json", content: openapi }
@@ -35,7 +35,7 @@ const aiDocs = createAiDocsServer({
 });
 
 // Next.js, Hono and other Fetch-compatible runtimes.
-export const POST = (request: Request) => aiDocs.fetch.handle(request);
+export const POST = (request: Request) => aiAppAssistant.fetch.handle(request);
 ```
 
 The model identifier selects the provider and its environment variable:
@@ -53,23 +53,23 @@ Handlers fail closed when no authentication strategy is configured. Use `http: {
 For native Node.js HTTP, Express, Fastify or Nest adapters that expose raw request and response objects:
 
 ```ts
-import { createAiDocsNodeHttpListener } from "@123toto/ai-app-assistant-server";
+import { createAiAppAssistantNodeHttpListener } from "@123toto/ai-app-assistant-server";
 
-const listener = createAiDocsNodeHttpListener(aiDocs.fetch);
+const listener = createAiAppAssistantNodeHttpListener(aiAppAssistant.fetch);
 ```
 
 ## Managed backend
 
-Use `createManagedAiDocsServer` when the application needs persisted provider settings, encrypted API keys, access rules, quotas, audit history, model discovery or telemetry.
+Use `createManagedAiAppAssistantServer` when the application needs persisted provider settings, encrypted API keys, access rules, quotas, audit history, model discovery or telemetry.
 
 ```ts
-import { createManagedAiDocsServer } from "@123toto/ai-app-assistant-server";
+import { createManagedAiAppAssistantServer } from "@123toto/ai-app-assistant-server";
 
-const aiDocs = createManagedAiDocsServer({
+const aiAppAssistant = createManagedAiAppAssistantServer({
   documents,
   configuration: {
-    storage: { type: "redis", client: redis, prefix: "my-app:ai-docs:" },
-    encryptionKey: process.env.AI_DOCS_SECRET_ENCRYPTION_KEY!,
+    storage: { type: "redis", client: redis, prefix: "my-app:ai-app-assistant:" },
+    encryptionKey: process.env.AI_APP_ASSISTANT_SECRET_ENCRYPTION_KEY!,
     defaultConfiguration: {
       provider: "mistral",
       model: "mistral-small-latest",
@@ -90,13 +90,13 @@ const aiDocs = createManagedAiDocsServer({
   }
 });
 
-await aiDocs.initialize();
+await aiAppAssistant.initialize();
 ```
 
 Documents can be replaced after application bootstrap, for example when an OpenAPI document is generated at runtime:
 
 ```ts
-await aiDocs.setDocuments([
+await aiAppAssistant.setDocuments([
   { id: "guide", title: "Application guide", content: guide },
   { id: "openapi", title: "API documentation", content: openapi }
 ]);
@@ -105,22 +105,22 @@ await aiDocs.setDocuments([
 ### Express
 
 ```ts
-import { createManagedAiDocsExpressHandler } from "@123toto/ai-app-assistant-server/express";
+import { createManagedAiAppAssistantExpressHandler } from "@123toto/ai-app-assistant-server/express";
 
-app.use("/api/ai-docs", createManagedAiDocsExpressHandler(aiDocs));
+app.use("/api/ai-app-assistant", createManagedAiAppAssistantExpressHandler(aiAppAssistant));
 ```
 
 ### Nest
 
 ```ts
-import { createManagedAiDocsServer } from "@123toto/ai-app-assistant-server";
-import { createManagedAiDocsNestModule } from "@123toto/ai-app-assistant-server/nest";
+import { createManagedAiAppAssistantServer } from "@123toto/ai-app-assistant-server";
+import { createManagedAiAppAssistantNestModule } from "@123toto/ai-app-assistant-server/nest";
 
-export const AiDocsModule = createManagedAiDocsNestModule({
-  path: "ai-docs",
+export const AiAppAssistantModule = createManagedAiAppAssistantNestModule({
+  path: "ai-app-assistant",
   imports: [AuthenticationModule],
   inject: [AuthenticationService],
-  useFactory: (auth: AuthenticationService) => createManagedAiDocsServer({
+  useFactory: (auth: AuthenticationService) => createManagedAiAppAssistantServer({
     configuration,
     http: {
       resolveIdentity: (_request, nativeRequest) => auth.currentUser(nativeRequest),
@@ -139,11 +139,11 @@ import "@123toto/ai-app-assistant-client/web-component";
 ```
 
 ```html
-<ai-docs-assistant
-  endpoint="/api/ai-docs/ask"
-  stream-endpoint="/api/ai-docs/ask/stream"
+<ai-app-assistant
+  endpoint="/api/ai-app-assistant/ask"
+  stream-endpoint="/api/ai-app-assistant/ask/stream"
   assistant-name="Application assistant"
-></ai-docs-assistant>
+></ai-app-assistant>
 ```
 
 The Web Component can be used from plain HTML, React, Vue, Svelte or Angular. It captures the rendered page, supports element selection, streams responses and manages retry, cancellation and conversation state.
@@ -155,17 +155,17 @@ import "@123toto/ai-app-assistant-client/settings-web-component";
 ```
 
 ```html
-<ai-docs-settings endpoint="/api/ai-docs"></ai-docs-settings>
+<ai-app-assistant-settings endpoint="/api/ai-app-assistant"></ai-app-assistant-settings>
 ```
 
 ## Headless browser client
 
 ```ts
-import { capturePage, createAiDocsClient } from "@123toto/ai-app-assistant-client";
+import { capturePage, createAiAppAssistantClient } from "@123toto/ai-app-assistant-client";
 
-const client = createAiDocsClient({
-  endpoint: "/api/ai-docs/ask",
-  streamEndpoint: "/api/ai-docs/ask/stream"
+const client = createAiAppAssistantClient({
+  endpoint: "/api/ai-app-assistant/ask",
+  streamEndpoint: "/api/ai-app-assistant/ask/stream"
 });
 
 const page = capturePage();
@@ -176,25 +176,25 @@ const answer = await client.ask({
 });
 ```
 
-Use `AiDocsAssistantController` when the application wants the standard conversation lifecycle with a custom UI.
+Use `AiAppAssistantController` when the application wants the standard conversation lifecycle with a custom UI.
 
 ## Angular connector
 
 ```ts
-import { provideAiDocs } from "@123toto/ai-app-assistant-client/angular";
+import { provideAiAppAssistant } from "@123toto/ai-app-assistant-client/angular";
 
 export const appConfig = {
   providers: [
-    provideAiDocs({
-      endpoint: "/api/ai-docs/ask",
-      streamEndpoint: "/api/ai-docs/ask/stream",
-      accessEndpoint: "/api/ai-docs/access"
+    provideAiAppAssistant({
+      endpoint: "/api/ai-app-assistant/ask",
+      streamEndpoint: "/api/ai-app-assistant/ask/stream",
+      managedEndpoint: "/api/ai-app-assistant"
     })
   ]
 };
 ```
 
-`AiDocsAssistantComponent`, `AiDocsService` and `AiDocsSettingsService` remain optional. They reuse the same framework-neutral client and contracts.
+`AiAppAssistantComponent`, `AiAppAssistantService` and `AiAppAssistantSettingsService` remain optional. They reuse the same framework-neutral client and contracts.
 
 ## Custom models
 

@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { AiDocsHttpError } from "./client.js";
-import { normalizeAiDocsError } from "./controller.js";
+import { AiAppAssistantHttpError } from "./client.js";
+import { normalizeAiAppAssistantError } from "./controller.js";
 
-describe("normalizeAiDocsError", () => {
+describe("normalizeAiAppAssistantError", () => {
   it("extracts a useful message from nested HTTP JSON", () => {
-    const error = new AiDocsHttpError(500, JSON.stringify({
+    const error = new AiAppAssistantHttpError(500, JSON.stringify({
       error: { message: "Provider temporarily unavailable" }
     }));
-    expect(normalizeAiDocsError(error).message).toBe("Provider temporarily unavailable");
+    expect(normalizeAiAppAssistantError(error).message).toBe("Provider temporarily unavailable");
   });
 
   it("never displays an object coercion and preserves cancellation", () => {
-    expect(normalizeAiDocsError({ error: { message: {} } }).message)
+    expect(normalizeAiAppAssistantError({ error: { message: {} } }).message)
       .toBe("The assistant request failed. Please try again.");
     const cancelled = new DOMException("Stopped", "AbortError");
-    expect(normalizeAiDocsError(cancelled)).toBe(cancelled);
+    expect(normalizeAiAppAssistantError(cancelled)).toBe(cancelled);
   });
 });

@@ -6,10 +6,10 @@ Only package exports listed below are part of the supported API. Internal `src` 
 
 | Entry point | Main exports |
 | --- | --- |
-| `@123toto/ai-app-assistant-server` | `createAiDocsServer`, `createManagedAiDocsServer`, `createAiDocsNodeHttpListener`, model adapters, configuration, quota, telemetry and storage primitives |
+| `@123toto/ai-app-assistant-server` | `createAiAppAssistantServer`, `createManagedAiAppAssistantServer`, `createAiAppAssistantNodeHttpListener`, model adapters, configuration, quota, telemetry and storage primitives |
 | `@123toto/ai-app-assistant-server/ai-sdk` | Vercel AI SDK generator and provider error types |
-| `@123toto/ai-app-assistant-server/express` | `createManagedAiDocsExpressHandler` |
-| `@123toto/ai-app-assistant-server/nest` | `createManagedAiDocsNestModule`, `MANAGED_AI_DOCS_SERVER` |
+| `@123toto/ai-app-assistant-server/express` | `createManagedAiAppAssistantExpressHandler` |
+| `@123toto/ai-app-assistant-server/nest` | `createManagedAiAppAssistantNestModule`, `MANAGED_AI_APP_ASSISTANT_SERVER` |
 
 The managed HTTP API exposes these relative routes:
 
@@ -34,18 +34,18 @@ Configuration and telemetry routes require the host application's administration
 
 | Entry point | Main exports |
 | --- | --- |
-| `@123toto/ai-app-assistant-client` | `createAiDocsClient`, `AiDocsAssistantController`, capture and picker utilities |
-| `@123toto/ai-app-assistant-client/web-component` | `<ai-docs-assistant>` and `defineAiDocsAssistantElement` |
+| `@123toto/ai-app-assistant-client` | `createAiAppAssistantClient`, `AiAppAssistantController`, capture and picker utilities |
+| `@123toto/ai-app-assistant-client/web-component` | `<ai-app-assistant>` and `defineAiAppAssistantElement` |
 | `@123toto/ai-app-assistant-client/settings` | Headless settings client and controller |
-| `@123toto/ai-app-assistant-client/settings-web-component` | `<ai-docs-settings>` and `defineAiDocsSettingsElement` |
-| `@123toto/ai-app-assistant-client/angular` | `provideAiDocs`, `AiDocsService`, `AiDocsAssistantComponent`, `AiDocsSettingsService` |
+| `@123toto/ai-app-assistant-client/settings-web-component` | `<ai-app-assistant-settings>` and `defineAiAppAssistantSettingsElement` |
+| `@123toto/ai-app-assistant-client/angular` | `provideAiAppAssistant`, `AiAppAssistantService`, `AiAppAssistantComponent`, `AiAppAssistantSettingsService` |
 
 ## Contracts
 
 `@123toto/ai-app-assistant-contracts` exports the Zod schemas and inferred TypeScript types used by both ends of the protocol, including:
 
-- `AskDocumentationRequest` and `AskDocumentationResponse`;
-- `AskDocumentationStreamEvent`;
+- `AiAppAssistantRequest` and `AiAppAssistantResponse`;
+- `AiAppAssistantTransportEvent`;
 - managed configuration, access, provider and model contracts;
 - token-usage and evidence contracts;
 - `PROTOCOL_VERSION`.

@@ -4,12 +4,12 @@ export {
   type CaptureResult
 } from "./capture.js";
 export {
-  AiDocsHttpError,
-  createAiDocsClient,
-  type AiDocsClient,
-  type AiDocsClientOptions,
-  type AiDocsStreamTransport,
-  type AiDocsTransport,
+  AiAppAssistantHttpError,
+  createAiAppAssistantClient,
+  type AiAppAssistantClient,
+  type AiAppAssistantClientOptions,
+  type AiAppAssistantStreamTransport,
+  type AiAppAssistantTransport,
   type AskInput
 } from "./client.js";
 export {
@@ -19,33 +19,33 @@ export {
   type ElementPickerSession
 } from "./picker.js";
 export {
-  AiDocsAssistantController,
-  describeAiDocsElement,
-  normalizeAiDocsError,
-  type AiDocsControllerConfig,
-  type AiDocsControllerListener,
-  type AiDocsControllerMessage,
-  type AiDocsControllerSnapshot,
-  type AiDocsControllerState
+  AiAppAssistantController,
+  describeAiAppAssistantElement,
+  normalizeAiAppAssistantError,
+  type AiAppAssistantControllerConfig,
+  type AiAppAssistantControllerListener,
+  type AiAppAssistantControllerMessage,
+  type AiAppAssistantControllerSnapshot,
+  type AiAppAssistantControllerState
 } from "./controller.js";
 export {
-  AiDocsSettingsController,
-  createAiDocsSettingsClient,
-  type AiDocsSettingsClient,
-  type AiDocsSettingsClientOptions,
-  type AiDocsSettingsListener,
-  type AiDocsSettingsSnapshot
+  AiAppAssistantSettingsController,
+  createAiAppAssistantSettingsClient,
+  type AiAppAssistantSettingsClient,
+  type AiAppAssistantSettingsClientOptions,
+  type AiAppAssistantSettingsListener,
+  type AiAppAssistantSettingsSnapshot
 } from "./settings.js";
 export type {
-  AiDocsAccessView,
-  AiDocsAccessRule,
-  AiDocsConfigurationInput,
-  AiDocsConfigurationOptions,
-  AiDocsConnectionResult,
-  AiDocsConnectionTestInput,
-  AiDocsCredentials,
-  AiDocsManagedConfigurationView,
-  AiDocsModelInfoContract,
-  AiDocsProvider,
-  AiDocsProviderInfoContract
+  AiAppAssistantAccessView,
+  AiAppAssistantAccessRule,
+  AiAppAssistantConfigurationInput,
+  AiAppAssistantConfigurationOptions,
+  AiAppAssistantConnectionResult,
+  AiAppAssistantConnectionTestInput,
+  AiAppAssistantCredentials,
+  AiAppAssistantManagedConfigurationView,
+  AiAppAssistantModelInfoContract,
+  AiAppAssistantProvider,
+  AiAppAssistantProviderInfoContract
 } from "@123toto/ai-app-assistant-contracts";

@@ -1,20 +1,20 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { AiDocsRequestError } from "./http.js";
+import { AiAppAssistantRequestError } from "./http.js";
 
-export interface AiDocsNodeHttpAdapterOptions {
+export interface AiAppAssistantNodeHttpAdapterOptions {
   /** Used when the incoming request does not expose an absolute URL. */
   origin?: string;
   /** Protects the adapter before constructing a Fetch API Request. */
   maxBodyBytes?: number;
 }
 
-export type AiDocsNodeHttpListener = (
+export type AiAppAssistantNodeHttpListener = (
   request: IncomingMessage,
   response: ServerResponse
 ) => Promise<void>;
 
 /** Minimal shape implemented by both basic and managed Fetch handlers. */
-export interface AiDocsNodeHttpHandler {
+export interface AiAppAssistantNodeHttpHandler {
   handle(request: Request): Promise<Response>;
 }
 
@@ -22,10 +22,10 @@ export interface AiDocsNodeHttpHandler {
  * Bridges Node's native HTTP objects to the framework-neutral Fetch handlers.
  * Express, Nest-on-Express and Fastify can expose their raw request/response.
  */
-export function createAiDocsNodeHttpListener(
-  handlers: AiDocsNodeHttpHandler,
-  options: AiDocsNodeHttpAdapterOptions = {}
-): AiDocsNodeHttpListener {
+export function createAiAppAssistantNodeHttpListener(
+  handlers: AiAppAssistantNodeHttpHandler,
+  options: AiAppAssistantNodeHttpAdapterOptions = {}
+): AiAppAssistantNodeHttpListener {
   return async (request, response) => {
     try {
       const webRequest = await toRequest(request, options);
@@ -35,8 +35,8 @@ export function createAiDocsNodeHttpListener(
       ) => Promise<Response>;
       await writeResponse(response, await handle(webRequest, request));
     } catch (error) {
-      const status = error instanceof AiDocsRequestError ? error.status : 500;
-      const code = error instanceof AiDocsRequestError ? error.code : "assistant_error";
+      const status = error instanceof AiAppAssistantRequestError ? error.status : 500;
+      const code = error instanceof AiAppAssistantRequestError ? error.code : "assistant_error";
       response.statusCode = status;
       response.setHeader("content-type", "application/json; charset=utf-8");
       response.end(JSON.stringify({ error: code }));
@@ -46,7 +46,7 @@ export function createAiDocsNodeHttpListener(
 
 async function toRequest(
   request: IncomingMessage,
-  options: AiDocsNodeHttpAdapterOptions
+  options: AiAppAssistantNodeHttpAdapterOptions
 ): Promise<Request> {
   const origin = options.origin ?? "http://localhost";
   const url = new URL(request.url ?? "/", origin);
@@ -73,7 +73,7 @@ async function readBody(request: IncomingMessage, maxBodyBytes: number): Promise
     const bytes = typeof chunk === "string" ? Buffer.from(chunk) : new Uint8Array(chunk);
     size += bytes.byteLength;
     if (size > maxBodyBytes) {
-      throw new AiDocsRequestError(413, "request_too_large", "Request body is too large");
+      throw new AiAppAssistantRequestError(413, "request_too_large", "Request body is too large");
     }
     chunks.push(bytes);
   }

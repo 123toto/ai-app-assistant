@@ -1,16 +1,16 @@
-import type { AskDocumentationResponse } from "@123toto/ai-app-assistant-contracts";
-import { createAiDocsClient, type AiDocsClientOptions } from "./client.js";
+import type { AiAppAssistantResponse } from "@123toto/ai-app-assistant-contracts";
+import { createAiAppAssistantClient, type AiAppAssistantClientOptions } from "./client.js";
 import {
-  AiDocsAssistantController,
-  normalizeAiDocsError,
-  type AiDocsControllerConfig,
-  type AiDocsControllerSnapshot
+  AiAppAssistantController,
+  normalizeAiAppAssistantError,
+  type AiAppAssistantControllerConfig,
+  type AiAppAssistantControllerSnapshot
 } from "./controller.js";
 
-export interface AiDocsWebComponentConfig extends AiDocsControllerConfig {
+export interface AiAppAssistantWebComponentConfig extends AiAppAssistantControllerConfig {
   endpoint: string;
   streamEndpoint?: string;
-  headers?: AiDocsClientOptions["headers"];
+  headers?: AiAppAssistantClientOptions["headers"];
   assistantName?: string;
   launcherLabel?: string;
   subtitle?: string;
@@ -27,7 +27,7 @@ const HTMLElementBase: typeof HTMLElement = typeof HTMLElement === "undefined"
  * Framework-independent assistant UI built on browser standards only.
  * Configure it with attributes or with `configure()` before/after connection.
  */
-export class AiDocsAssistantElement extends HTMLElementBase {
+export class AiAppAssistantElement extends HTMLElementBase {
   static readonly observedAttributes = [
     "endpoint",
     "stream-endpoint",
@@ -39,15 +39,15 @@ export class AiDocsAssistantElement extends HTMLElementBase {
   ];
 
   readonly #root = this.attachShadow({ mode: "open" });
-  #config: Partial<AiDocsWebComponentConfig> = {};
-  #controller: AiDocsAssistantController | undefined;
+  #config: Partial<AiAppAssistantWebComponentConfig> = {};
+  #controller: AiAppAssistantController | undefined;
   #unsubscribe: (() => void) | undefined;
-  #snapshot: AiDocsControllerSnapshot | undefined;
+  #snapshot: AiAppAssistantControllerSnapshot | undefined;
   #open = false;
   #question = "";
 
   public connectedCallback(): void {
-    this.setAttribute("data-ai-docs-ui", "");
+    this.setAttribute("data-ai-app-assistant-ui", "");
     this.#root.addEventListener("click", this.onClick);
     this.#root.addEventListener("submit", this.onSubmit);
     this.#root.addEventListener("input", this.onInput);
@@ -70,7 +70,7 @@ export class AiDocsAssistantElement extends HTMLElementBase {
   }
 
   /** Applies non-serializable options such as authorization headers. */
-  public configure(config: AiDocsWebComponentConfig): void {
+  public configure(config: AiAppAssistantWebComponentConfig): void {
     this.#config = { ...this.#config, ...config };
     if (this.isConnected) this.initialize();
   }
@@ -85,21 +85,21 @@ export class AiDocsAssistantElement extends HTMLElementBase {
     const config = this.resolveConfig();
     if (!config.endpoint) {
       this.#snapshot = undefined;
-      this.render("Missing ai-docs endpoint.");
+      this.render("Missing ai-app-assistant endpoint.");
       return;
     }
     this.#unsubscribe?.();
     this.#controller?.stop();
-    const client = createAiDocsClient({
+    const client = createAiAppAssistantClient({
       endpoint: config.endpoint,
       ...(config.streamEndpoint ? { streamEndpoint: config.streamEndpoint } : {}),
       ...(config.headers ? { headers: config.headers } : {})
     });
-    this.#controller = new AiDocsAssistantController(config, client);
+    this.#controller = new AiAppAssistantController(config, client);
     this.#unsubscribe = this.#controller.subscribe((snapshot) => {
       this.#snapshot = snapshot;
       this.render();
-      this.dispatchEvent(new CustomEvent("ai-docs-state-change", {
+      this.dispatchEvent(new CustomEvent("ai-app-assistant-state-change", {
         detail: snapshot,
         bubbles: true,
         composed: true
@@ -107,7 +107,7 @@ export class AiDocsAssistantElement extends HTMLElementBase {
     });
   }
 
-  private resolveConfig(): AiDocsWebComponentConfig {
+  private resolveConfig(): AiAppAssistantWebComponentConfig {
     const endpoint = this.#config.endpoint ?? this.getAttribute("endpoint") ?? "";
     const streamEndpoint = this.#config.streamEndpoint ?? this.getAttribute("stream-endpoint") ?? undefined;
     const turnsValue = this.#config.maxConversationTurns
@@ -141,7 +141,7 @@ export class AiDocsAssistantElement extends HTMLElementBase {
     queueMicrotask(() => this.scrollToLatestQuestion());
   }
 
-  private renderConversation(snapshot: AiDocsControllerSnapshot | undefined, labels: Labels): string {
+  private renderConversation(snapshot: AiAppAssistantControllerSnapshot | undefined, labels: Labels): string {
     if (!snapshot) return "";
     const messages = snapshot.messages.map((message) => {
       if (message.role === "selection") {
@@ -164,7 +164,7 @@ export class AiDocsAssistantElement extends HTMLElementBase {
       : `<div class="welcome"><strong>${labels.welcome}</strong><p>${labels.welcomeBody}</p></div>`;
   }
 
-  private renderComposer(snapshot: AiDocsControllerSnapshot | undefined, labels: Labels): string {
+  private renderComposer(snapshot: AiAppAssistantControllerSnapshot | undefined, labels: Labels): string {
     const disabled = snapshot?.loading || snapshot?.conversationLimitReached;
     return `<form class="composer">
       ${snapshot?.conversationLimitReached ? `<div class="limit"><span>${labels.limit}</span><button type="button" data-action="new">${labels.newConversation}</button></div>` : ""}
@@ -217,12 +217,12 @@ export class AiDocsAssistantElement extends HTMLElementBase {
     this.#question = "";
     try {
       const response = await this.#controller.ask(question ? { question } : {});
-      this.dispatchEvent(new CustomEvent("ai-docs-answer", {
+      this.dispatchEvent(new CustomEvent("ai-app-assistant-answer", {
         detail: response, bubbles: true, composed: true
       }));
     } catch (error) {
-      const normalized = normalizeAiDocsError(error);
-      if (normalized.name !== "AbortError") this.dispatchEvent(new CustomEvent("ai-docs-error", {
+      const normalized = normalizeAiAppAssistantError(error);
+      if (normalized.name !== "AbortError") this.dispatchEvent(new CustomEvent("ai-app-assistant-error", {
         detail: normalized, bubbles: true, composed: true
       }));
     }
@@ -237,7 +237,7 @@ export class AiDocsAssistantElement extends HTMLElementBase {
     this.#open = false;
     this.render();
     try { await this.#controller.selectElement(); }
-    catch (error) { if (normalizeAiDocsError(error).name !== "AbortError") throw error; }
+    catch (error) { if (normalizeAiAppAssistantError(error).name !== "AbortError") throw error; }
     finally { this.#open = true; this.render(); }
   }
 
@@ -253,17 +253,17 @@ export class AiDocsAssistantElement extends HTMLElementBase {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "ai-docs-assistant": AiDocsAssistantElement;
+    "ai-app-assistant": AiAppAssistantElement;
   }
 }
 
-/** Registers `<ai-docs-assistant>` once and returns its constructor. */
-export function defineAiDocsAssistantElement(tagName = "ai-docs-assistant"): typeof AiDocsAssistantElement {
-  if (!customElements.get(tagName)) customElements.define(tagName, AiDocsAssistantElement);
-  return AiDocsAssistantElement;
+/** Registers `<ai-app-assistant>` once and returns its constructor. */
+export function defineAiAppAssistantElement(tagName = "ai-app-assistant"): typeof AiAppAssistantElement {
+  if (!customElements.get(tagName)) customElements.define(tagName, AiAppAssistantElement);
+  return AiAppAssistantElement;
 }
 
-function renderResponse(response: AskDocumentationResponse): string {
+function renderResponse(response: AiAppAssistantResponse): string {
   const title = response.answer.title ? `<h3>${escapeHtml(response.answer.title)}</h3>` : "";
   const sections = response.answer.sections.map((section) =>
     `<section><h4>${escapeHtml(section.heading)}</h4><p>${escapeHtml(section.content)}</p></section>`
@@ -338,4 +338,4 @@ const STYLES = `
 `;
 
 // Importing the browser-only subpath is enough for the zero-configuration use case.
-if (typeof customElements !== "undefined") defineAiDocsAssistantElement();
+if (typeof customElements !== "undefined") defineAiAppAssistantElement();

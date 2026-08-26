@@ -2,12 +2,12 @@ import { randomBytes } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import {
   createAes256GcmSecretProtector,
-  createAiDocsConfigurationRepository,
-  createMemoryAiDocsStore,
-  createRedisAiDocsStore
+  createAiAppAssistantConfigurationRepository,
+  createMemoryAiAppAssistantStore,
+  createRedisAiAppAssistantStore
 } from "./configuration.js";
 
-describe("AI Docs configuration persistence", () => {
+describe("AI App Assistant configuration persistence", () => {
   it("encrypts API keys and never exposes them in configuration views", async () => {
     const raw = new Map<string, string>();
     const store = {
@@ -15,7 +15,7 @@ describe("AI Docs configuration persistence", () => {
       async set(key: string, value: string) { raw.set(key, value); },
       async delete(key: string) { raw.delete(key); }
     };
-    const repository = createAiDocsConfigurationRepository({
+    const repository = createAiAppAssistantConfigurationRepository({
       store,
       secretProtector: createAes256GcmSecretProtector(randomBytes(32).toString("base64"))
     });
@@ -38,7 +38,7 @@ describe("AI Docs configuration persistence", () => {
   });
 
   it("supports a dependency-free in-memory store", async () => {
-    const store = createMemoryAiDocsStore();
+    const store = createMemoryAiAppAssistantStore();
     await store.set("key", "value");
     await expect(store.get("key")).resolves.toBe("value");
     await store.delete("key");
@@ -46,8 +46,8 @@ describe("AI Docs configuration persistence", () => {
   });
 
   it("retries atomic mutations instead of losing concurrent changes", async () => {
-    const repository = createAiDocsConfigurationRepository({
-      store: createMemoryAiDocsStore(),
+    const repository = createAiAppAssistantConfigurationRepository({
+      store: createMemoryAiAppAssistantStore(),
       secretProtector: { protect: String, unprotect: String }
     });
     await repository.save({ provider: "ollama", model: "qwen3", access: { mode: "all" } });
@@ -91,7 +91,7 @@ describe("AI Docs configuration persistence", () => {
       set: vi.fn().mockResolvedValue("OK"),
       del: vi.fn().mockResolvedValue(1)
     };
-    const store = createRedisAiDocsStore(redis, { prefix: "test-app:" });
+    const store = createRedisAiAppAssistantStore(redis, { prefix: "test-app:" });
 
     await store.set("configuration", "value");
     await store.get("configuration");
@@ -109,7 +109,7 @@ describe("AI Docs configuration persistence", () => {
       del: vi.fn().mockResolvedValue(1),
       eval: vi.fn().mockResolvedValue(1)
     };
-    const store = createRedisAiDocsStore(redis, { prefix: "test-app:" });
+    const store = createRedisAiAppAssistantStore(redis, { prefix: "test-app:" });
 
     await expect(store.compareAndSet!("configuration", "previous", "next")).resolves.toBe(true);
     expect(redis.eval).toHaveBeenCalledWith(
@@ -123,8 +123,8 @@ describe("AI Docs configuration persistence", () => {
   });
 
   it("persists ownership and audit history without exposing API key values", async () => {
-    const repository = createAiDocsConfigurationRepository({
-      store: createMemoryAiDocsStore(),
+    const repository = createAiAppAssistantConfigurationRepository({
+      store: createMemoryAiAppAssistantStore(),
       secretProtector: createAes256GcmSecretProtector(randomBytes(32).toString("base64"))
     });
     const actor = { id: "user-a", label: "User A" };

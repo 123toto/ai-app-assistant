@@ -1,16 +1,16 @@
 import type {
-  AskDocumentationResponse,
-  AskDocumentationStreamEvent
+  AiAppAssistantResponse,
+  AiAppAssistantTransportEvent
 } from "@123toto/ai-app-assistant-contracts";
 import { capturePage } from "./capture.js";
-import type { AiDocsClient } from "./client.js";
+import type { AiAppAssistantClient } from "./client.js";
 import {
   createElementPickerSession,
   type ElementPickerSession
 } from "./picker.js";
 
 /** Browser behaviour shared by every UI framework connector. */
-export interface AiDocsControllerConfig {
+export interface AiAppAssistantControllerConfig {
   rootSelector?: string;
   redactSelectors?: string[];
   maxHtmlChars?: number;
@@ -24,7 +24,7 @@ export interface AiDocsControllerConfig {
   pageKey?: () => string;
 }
 
-export type AiDocsControllerState =
+export type AiAppAssistantControllerState =
   | { status: "idle" }
   | {
     status: "loading";
@@ -32,17 +32,17 @@ export type AiDocsControllerState =
     partialText: string;
     retry?: { attempt: number; maxRetries: number; delayMs: number };
   }
-  | { status: "success"; response: AskDocumentationResponse }
+  | { status: "success"; response: AiAppAssistantResponse }
   | { status: "error"; error: Error; canRetry: boolean };
 
-export type AiDocsControllerMessage =
+export type AiAppAssistantControllerMessage =
   | { id: string; role: "user"; text: string; selectedElementLabel?: string }
-  | { id: string; role: "assistant"; response: AskDocumentationResponse }
+  | { id: string; role: "assistant"; response: AiAppAssistantResponse }
   | { id: string; role: "selection"; label: string };
 
-export interface AiDocsControllerSnapshot {
-  state: AiDocsControllerState;
-  messages: readonly AiDocsControllerMessage[];
+export interface AiAppAssistantControllerSnapshot {
+  state: AiAppAssistantControllerState;
+  messages: readonly AiAppAssistantControllerMessage[];
   selecting: boolean;
   selectedElementLabel?: string;
   loading: boolean;
@@ -51,17 +51,17 @@ export interface AiDocsControllerSnapshot {
   conversationLimitReached: boolean;
 }
 
-export type AiDocsControllerListener = (snapshot: AiDocsControllerSnapshot) => void;
+export type AiAppAssistantControllerListener = (snapshot: AiAppAssistantControllerSnapshot) => void;
 
 /**
  * Framework-neutral browser controller for capture, selection and conversation.
  * Angular, React, Vue and Web Components can all bind to the same snapshots.
  */
-export class AiDocsAssistantController {
-  readonly config: Readonly<AiDocsControllerConfig>;
+export class AiAppAssistantController {
+  readonly config: Readonly<AiAppAssistantControllerConfig>;
 
-  #state: AiDocsControllerState = { status: "idle" };
-  #messages: AiDocsControllerMessage[] = [];
+  #state: AiAppAssistantControllerState = { status: "idle" };
+  #messages: AiAppAssistantControllerMessage[] = [];
   #selectedElement: Element | undefined;
   #selecting = false;
   #maxConversationTurns: number;
@@ -70,15 +70,15 @@ export class AiDocsAssistantController {
   #lastQuestion: string | undefined;
   #phaseTimers: Array<ReturnType<typeof setTimeout>> = [];
   #pageKey: string;
-  readonly #listeners = new Set<AiDocsControllerListener>();
+  readonly #listeners = new Set<AiAppAssistantControllerListener>();
 
-  public constructor(config: AiDocsControllerConfig, private readonly client: AiDocsClient) {
+  public constructor(config: AiAppAssistantControllerConfig, private readonly client: AiAppAssistantClient) {
     this.config = Object.freeze({ ...config });
     this.#maxConversationTurns = clampInteger(config.maxConversationTurns ?? 3, 1, 10);
     this.#pageKey = this.currentPageKey();
   }
 
-  public get snapshot(): AiDocsControllerSnapshot {
+  public get snapshot(): AiAppAssistantControllerSnapshot {
     const conversationTurns = this.#messages.filter((message) => message.role === "assistant").length;
     const selectedElementLabel = describeElement(this.#selectedElement);
     return {
@@ -94,14 +94,14 @@ export class AiDocsAssistantController {
   }
 
   /** Subscribes to complete immutable snapshots and immediately emits the current one. */
-  public subscribe(listener: AiDocsControllerListener): () => void {
+  public subscribe(listener: AiAppAssistantControllerListener): () => void {
     this.#listeners.add(listener);
     listener(this.snapshot);
     return () => this.#listeners.delete(listener);
   }
 
   /** Captures the current page and sends one question to the configured backend. */
-  public async ask(options: { question?: string; selectedElement?: Element } = {}): Promise<AskDocumentationResponse> {
+  public async ask(options: { question?: string; selectedElement?: Element } = {}): Promise<AiAppAssistantResponse> {
     this.syncPage();
     if (this.snapshot.conversationLimitReached) {
       throw new Error("Conversation limit reached. Start a new conversation.");
@@ -148,7 +148,7 @@ export class AiDocsAssistantController {
       this.notify();
       return response;
     } catch (error) {
-      const normalized = normalizeAiDocsError(error);
+      const normalized = normalizeAiAppAssistantError(error);
       if (normalized.name === "AbortError" && this.#messages.at(-1)?.role === "user") {
         this.#messages = this.#messages.slice(0, -1);
       }
@@ -168,7 +168,7 @@ export class AiDocsAssistantController {
     this.#selecting = true;
     this.notify();
     const picker = createElementPickerSession({
-      excludeSelectors: ["[data-ai-docs-ui]", ...(this.config.redactSelectors ?? [])]
+      excludeSelectors: ["[data-ai-app-assistant-ui]", ...(this.config.redactSelectors ?? [])]
     });
     this.#picker = picker;
     try {
@@ -189,10 +189,10 @@ export class AiDocsAssistantController {
   }
 
   /** Backward-compatible shortcut; prefer selection followed by a custom prompt. */
-  public async selectAndAsk(question: string, options?: { signal?: AbortSignal }): Promise<AskDocumentationResponse> {
+  public async selectAndAsk(question: string, options?: { signal?: AbortSignal }): Promise<AiAppAssistantResponse> {
     const picker = createElementPickerSession({
       ...(options?.signal ? { signal: options.signal } : {}),
-      excludeSelectors: ["[data-ai-docs-ui]", ...(this.config.redactSelectors ?? [])]
+      excludeSelectors: ["[data-ai-app-assistant-ui]", ...(this.config.redactSelectors ?? [])]
     });
     return this.ask({ question, selectedElement: await picker.result });
   }
@@ -221,7 +221,7 @@ export class AiDocsAssistantController {
   }
 
   /** Replays the last question after automatic transport retries are exhausted. */
-  public retry(): Promise<AskDocumentationResponse> {
+  public retry(): Promise<AiAppAssistantResponse> {
     if (!this.#lastQuestion) return Promise.reject(new Error("No request to retry."));
     if (this.#messages.at(-1)?.role === "user") this.#messages = this.#messages.slice(0, -1);
     return this.ask({ question: this.#lastQuestion });
@@ -268,7 +268,7 @@ export class AiDocsAssistantController {
     return capturePage({
       root,
       ...(selectedElement ? { selectedElement } : {}),
-      redactSelectors: ["[data-ai-docs-ui]", ...(this.config.redactSelectors ?? [])],
+      redactSelectors: ["[data-ai-app-assistant-ui]", ...(this.config.redactSelectors ?? [])],
       ...(this.config.maxHtmlChars ? { maxHtmlChars: this.config.maxHtmlChars } : {}),
       ...(this.config.includeFormValues !== undefined
         ? { includeFormValues: this.config.includeFormValues }
@@ -277,7 +277,7 @@ export class AiDocsAssistantController {
   }
 
   /** Translates transport events into stable UI phases and partial text. */
-  private applyStreamEvent(event: AskDocumentationStreamEvent): void {
+  private applyStreamEvent(event: AiAppAssistantTransportEvent): void {
     if (event.type === "status") {
       this.clearPhaseTimers();
       if (event.phase === "preparing") {
@@ -323,11 +323,11 @@ export class AiDocsAssistantController {
   }
 }
 
-export function describeAiDocsElement(element?: Element): string | undefined {
+export function describeAiAppAssistantElement(element?: Element): string | undefined {
   return describeElement(element);
 }
 
-export function normalizeAiDocsError(error: unknown): Error {
+export function normalizeAiAppAssistantError(error: unknown): Error {
   if (error instanceof Error && error.name === "AbortError") return error;
   const payload = error && typeof error === "object" && "error" in error
     ? (error as { error?: unknown }).error
@@ -369,7 +369,7 @@ function describeElement(element?: Element): string | undefined {
   return label ? label.slice(0, 80) : element.tagName.toLowerCase();
 }
 
-function conversationHistory(messages: AiDocsControllerMessage[], maxTurns: number) {
+function conversationHistory(messages: AiAppAssistantControllerMessage[], maxTurns: number) {
   return messages.filter((message) => message.role !== "selection").slice(-(maxTurns * 2)).map((message) => ({
     role: message.role,
     content: message.role === "user"
@@ -378,7 +378,7 @@ function conversationHistory(messages: AiDocsControllerMessage[], maxTurns: numb
   }));
 }
 
-function renderResponseForHistory(response: AskDocumentationResponse): string {
+function renderResponseForHistory(response: AiAppAssistantResponse): string {
   return [
     response.answer.title,
     response.answer.summary,

@@ -10,10 +10,10 @@ npm install @123toto/ai-app-assistant-contracts
 
 ```ts
 import {
-  askDocumentationRequestSchema,
-  askDocumentationResponseSchema,
-  type AskDocumentationRequest,
-  type AskDocumentationResponse
+  aiAppAssistantRequestSchema,
+  aiAppAssistantResponseSchema,
+  type AiAppAssistantRequest,
+  type AiAppAssistantResponse
 } from "@123toto/ai-app-assistant-contracts";
 ```
 

@@ -1,13 +1,13 @@
 // @vitest-environment happy-dom
 import "@angular/compiler";
 import { describe, expect, it, vi } from "vitest";
-import type { AskDocumentationResponse } from "@123toto/ai-app-assistant-contracts";
-import { AiDocsService } from "./angular.js";
-import type { AiDocsClient } from "./client.js";
-import type { AiDocsSettingsClient } from "./settings.js";
+import type { AiAppAssistantResponse } from "@123toto/ai-app-assistant-contracts";
+import { AiAppAssistantService } from "./angular.js";
+import type { AiAppAssistantClient } from "./client.js";
+import type { AiAppAssistantSettingsClient } from "./settings.js";
 
-const response: AskDocumentationResponse = {
-  protocolVersion: "3",
+const response: AiAppAssistantResponse = {
+  protocolVersion: "4",
   requestId: "test-request",
   answerability: "answered",
   answer: { summary: "Test answer", sections: [] },
@@ -19,11 +19,11 @@ const response: AskDocumentationResponse = {
 
 function createService(maxConversationTurns: number) {
   document.body.innerHTML = "<main>Test page</main>";
-  const client: AiDocsClient = {
+  const client: AiAppAssistantClient = {
     ask: vi.fn().mockResolvedValue(response),
     stream: vi.fn().mockResolvedValue(response)
   };
-  return new AiDocsService({
+  return new AiAppAssistantService({
     endpoint: "/ask",
     streaming: false,
     maxConversationTurns
@@ -32,18 +32,18 @@ function createService(maxConversationTurns: number) {
 
 function createFailingService(maxConversationTurns: number) {
   document.body.innerHTML = "<main>Test page</main>";
-  const client: AiDocsClient = {
+  const client: AiAppAssistantClient = {
     ask: vi.fn().mockRejectedValue(new Error("Quota reached")),
     stream: vi.fn().mockRejectedValue(new Error("Quota reached"))
   };
-  return new AiDocsService({
+  return new AiAppAssistantService({
     endpoint: "/ask",
     streaming: false,
     maxConversationTurns
   }, client);
 }
 
-describe("AiDocsService conversation limit", () => {
+describe("AiAppAssistantService conversation limit", () => {
   it("allows one question when the configured limit is one", async () => {
     const service = createService(1);
 
@@ -85,16 +85,16 @@ describe("AiDocsService conversation limit", () => {
   });
 
   it("uses managed access to control visibility and the conversation limit", async () => {
-    const client: AiDocsClient = {
+    const client: AiAppAssistantClient = {
       ask: vi.fn().mockResolvedValue(response),
       stream: vi.fn().mockResolvedValue(response)
     };
     const settingsClient = {
       getAccess: vi.fn().mockResolvedValue({ available: true, maxConversationTurns: 1 })
-    } as unknown as AiDocsSettingsClient;
-    const service = new AiDocsService({
-      endpoint: "/api/ai-docs/ask",
-      managedEndpoint: "/api/ai-docs",
+    } as unknown as AiAppAssistantSettingsClient;
+    const service = new AiAppAssistantService({
+      endpoint: "/api/ai-app-assistant/ask",
+      managedEndpoint: "/api/ai-app-assistant",
       streaming: false
     }, client, settingsClient);
 

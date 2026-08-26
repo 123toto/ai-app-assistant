@@ -21,7 +21,7 @@ export function createElementPickerSession(
 
   const result = new Promise<Element>((resolve, reject) => {
     const overlay = document.createElement("div");
-    overlay.className = options.overlayClassName ?? "ai-docs-element-highlight";
+    overlay.className = options.overlayClassName ?? "ai-app-assistant-element-highlight";
     Object.assign(overlay.style, {
       position: "fixed",
       pointerEvents: "none",

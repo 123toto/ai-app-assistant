@@ -1,28 +1,28 @@
 import {
   PROTOCOL_VERSION,
-  askDocumentationResponseSchema,
-  askDocumentationStreamEventSchema,
-  type AskDocumentationRequest,
-  type AskDocumentationResponse,
-  type AskDocumentationStreamEvent
+  aiAppAssistantResponseSchema,
+  aiAppAssistantTransportEventSchema,
+  type AiAppAssistantRequest,
+  type AiAppAssistantResponse,
+  type AiAppAssistantTransportEvent
 } from "@123toto/ai-app-assistant-contracts";
 
-export interface AiDocsClientOptions {
+export interface AiAppAssistantClientOptions {
   endpoint: string;
   fetch?: typeof globalThis.fetch;
   headers?: () => HeadersInit | Promise<HeadersInit>;
-  transport?: AiDocsTransport;
+  transport?: AiAppAssistantTransport;
   streamEndpoint?: string;
-  streamTransport?: AiDocsStreamTransport;
+  streamTransport?: AiAppAssistantStreamTransport;
 }
 
-export type AiDocsTransport = (
-  request: AskDocumentationRequest,
+export type AiAppAssistantTransport = (
+  request: AiAppAssistantRequest,
   options: { endpoint: string; signal?: AbortSignal }
 ) => Promise<unknown>;
 
-export type AiDocsStreamTransport = (
-  request: AskDocumentationRequest,
+export type AiAppAssistantStreamTransport = (
+  request: AiAppAssistantRequest,
   options: { endpoint: string; signal?: AbortSignal }
 ) => AsyncIterable<unknown>;
 
@@ -36,19 +36,19 @@ export interface AskInput {
   requestId?: string;
 }
 
-export interface AiDocsClient {
-  ask(input: AskInput, options?: { signal?: AbortSignal }): Promise<AskDocumentationResponse>;
+export interface AiAppAssistantClient {
+  ask(input: AskInput, options?: { signal?: AbortSignal }): Promise<AiAppAssistantResponse>;
   stream(
     input: AskInput,
     options?: {
       signal?: AbortSignal;
-      onEvent?: (event: AskDocumentationStreamEvent) => void;
+      onEvent?: (event: AiAppAssistantTransportEvent) => void;
     }
-  ): Promise<AskDocumentationResponse>;
+  ): Promise<AiAppAssistantResponse>;
 }
 
 /** Creates a small validated HTTP client with no framework dependency. */
-export function createAiDocsClient(options: AiDocsClientOptions): AiDocsClient {
+export function createAiAppAssistantClient(options: AiAppAssistantClientOptions): AiAppAssistantClient {
   const fetchImplementation = options.fetch ?? globalThis.fetch;
 
   if (!options.transport && !fetchImplementation) {
@@ -57,7 +57,7 @@ export function createAiDocsClient(options: AiDocsClientOptions): AiDocsClient {
 
   return {
     async ask(input, callOptions) {
-      const request: AskDocumentationRequest = {
+      const request: AiAppAssistantRequest = {
         protocolVersion: PROTOCOL_VERSION,
         requestId: input.requestId ?? crypto.randomUUID(),
         html: input.html,
@@ -71,7 +71,7 @@ export function createAiDocsClient(options: AiDocsClientOptions): AiDocsClient {
       };
 
       if (options.transport) {
-        return askDocumentationResponseSchema.parse(
+        return aiAppAssistantResponseSchema.parse(
           await options.transport(request, {
             endpoint: options.endpoint,
             ...(callOptions?.signal ? { signal: callOptions.signal } : {})
@@ -92,10 +92,10 @@ export function createAiDocsClient(options: AiDocsClientOptions): AiDocsClient {
       });
 
       if (!response.ok) {
-        throw new AiDocsHttpError(response.status, await response.text());
+        throw new AiAppAssistantHttpError(response.status, await response.text());
       }
 
-      return askDocumentationResponseSchema.parse(await response.json());
+      return aiAppAssistantResponseSchema.parse(await response.json());
     },
 
     async stream(input, callOptions) {
@@ -107,10 +107,10 @@ export function createAiDocsClient(options: AiDocsClientOptions): AiDocsClient {
           ...(callOptions?.signal ? { signal: callOptions.signal } : {})
         })
         : streamWithFetch(fetchImplementation!, endpoint, request, options, callOptions?.signal);
-      let response: AskDocumentationResponse | undefined;
+      let response: AiAppAssistantResponse | undefined;
 
       for await (const rawEvent of events) {
-        const event = askDocumentationStreamEventSchema.parse(rawEvent);
+        const event = aiAppAssistantTransportEventSchema.parse(rawEvent);
         callOptions?.onEvent?.(event);
         if (event.type === "error") throw new Error(event.message);
         if (event.type === "complete") response = event.response;
@@ -122,7 +122,7 @@ export function createAiDocsClient(options: AiDocsClientOptions): AiDocsClient {
   };
 }
 
-function createRequest(input: AskInput): AskDocumentationRequest {
+function createRequest(input: AskInput): AiAppAssistantRequest {
   return {
     protocolVersion: PROTOCOL_VERSION,
     requestId: input.requestId ?? crypto.randomUUID(),
@@ -138,8 +138,8 @@ function createRequest(input: AskInput): AskDocumentationRequest {
 async function* streamWithFetch(
   fetchImplementation: typeof globalThis.fetch,
   endpoint: string,
-  request: AskDocumentationRequest,
-  options: AiDocsClientOptions,
+  request: AiAppAssistantRequest,
+  options: AiAppAssistantClientOptions,
   signal?: AbortSignal
 ): AsyncGenerator<unknown> {
   const customHeaders = await options.headers?.();
@@ -150,7 +150,7 @@ async function* streamWithFetch(
     body: JSON.stringify(request),
     ...(signal ? { signal } : {})
   });
-  if (!response.ok) throw new AiDocsHttpError(response.status, await response.text());
+  if (!response.ok) throw new AiAppAssistantHttpError(response.status, await response.text());
   if (!response.body) throw new Error("Streaming response has no body.");
 
   const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
@@ -170,12 +170,12 @@ async function* streamWithFetch(
   }
 }
 
-export class AiDocsHttpError extends Error {
+export class AiAppAssistantHttpError extends Error {
   constructor(
     readonly status: number,
     readonly responseBody: string
   ) {
     super(`AI docs request failed with status ${status}.`);
-    this.name = "AiDocsHttpError";
+    this.name = "AiAppAssistantHttpError";
   }
 }

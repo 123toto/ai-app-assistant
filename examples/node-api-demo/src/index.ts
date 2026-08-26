@@ -1,9 +1,9 @@
 import { createServer } from "node:http";
 import {
-  createAiDocsNodeHttpListener,
-  createAiDocsConfigurationRepository,
-  createManagedAiDocsServer,
-  createMemoryAiDocsStore,
+  createAiAppAssistantNodeHttpListener,
+  createAiAppAssistantConfigurationRepository,
+  createManagedAiAppAssistantServer,
+  createMemoryAiAppAssistantStore,
   type AnswerGenerator,
   type EvidenceBundle,
   type GeneratedAnswer
@@ -33,10 +33,10 @@ const fakeGenerator: AnswerGenerator = {
   }
 };
 
-const aiDocs = createManagedAiDocsServer({
+const aiAppAssistant = createManagedAiAppAssistantServer({
   configuration: {
-    repository: createAiDocsConfigurationRepository({
-      store: createMemoryAiDocsStore(),
+    repository: createAiAppAssistantConfigurationRepository({
+      store: createMemoryAiAppAssistantStore(),
       secretProtector: { protect: String, unprotect: String }
     }),
     defaultConfiguration: {
@@ -53,7 +53,7 @@ const aiDocs = createManagedAiDocsServer({
   }
 });
 
-await aiDocs.setDocuments([
+await aiAppAssistant.setDocuments([
     {
       id: "application-guide",
       title: "Guide de l’application",
@@ -77,8 +77,8 @@ await aiDocs.setDocuments([
       }
     }
 ]);
-await aiDocs.initialize();
+await aiAppAssistant.initialize();
 
-createServer(createAiDocsNodeHttpListener(aiDocs.fetch)).listen(3000, () => {
+createServer(createAiAppAssistantNodeHttpListener(aiAppAssistant.fetch)).listen(3000, () => {
   console.log("Demo API listening on http://localhost:3000");
 });

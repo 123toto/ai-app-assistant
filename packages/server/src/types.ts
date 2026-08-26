@@ -89,7 +89,7 @@ export interface AnswerGenerator {
 }
 
 /** Configuration shared by all calls made through an assistant instance. */
-export interface DocsAssistantOptions {
+export interface AiAppAssistantOptions {
   generator: AnswerGenerator;
   /**
    * Application documentation loaded and serialized once when the assistant is

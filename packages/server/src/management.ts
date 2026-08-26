@@ -1,28 +1,28 @@
 import { createHash, randomUUID } from "node:crypto";
 import type {
-  AiDocsConfigurationFieldSource,
-  AiDocsConfigurationInput,
-  AiDocsConnectionResult,
-  AiDocsConnectionTestInput,
-  AiDocsCredentials,
-  AiDocsManagedConfigurationView,
-  AiDocsRuntimeConnection
+  AiAppAssistantConfigurationFieldSource,
+  AiAppAssistantConfigurationInput,
+  AiAppAssistantConnectionResult,
+  AiAppAssistantConnectionTestInput,
+  AiAppAssistantCredentials,
+  AiAppAssistantManagedConfigurationView,
+  AiAppAssistantRuntimeConnection
 } from "@123toto/ai-app-assistant-contracts";
 import {
-  type AiDocsConfiguration,
-  type AiDocsConfigurationActor,
-  type AiDocsConfigurationAdministration,
-  type AiDocsConfigurationAuditChange,
-  type AiDocsConfigurationAuditEntry,
-  AiDocsConfigurationConflictError,
-  type AiDocsConfigurationRepository,
-  type AiDocsKeyValueStore
+  type AiAppAssistantConfiguration,
+  type AiAppAssistantConfigurationActor,
+  type AiAppAssistantConfigurationAdministration,
+  type AiAppAssistantConfigurationAuditChange,
+  type AiAppAssistantConfigurationAuditEntry,
+  AiAppAssistantConfigurationConflictError,
+  type AiAppAssistantConfigurationRepository,
+  type AiAppAssistantKeyValueStore
 } from "./configuration.js";
 import {
-  createMemoryAiDocsQuotaStore,
-  type AiDocsQuotaPolicy,
-  type AiDocsQuotaResult,
-  type AiDocsQuotaStore
+  createMemoryAiAppAssistantQuotaStore,
+  type AiAppAssistantQuotaPolicy,
+  type AiAppAssistantQuotaResult,
+  type AiAppAssistantQuotaStore
 } from "./quota.js";
 import {
   listAiModels,
@@ -36,11 +36,11 @@ import {
 } from "./ai-sdk.js";
 
 /** Minimal identity understood by the generic access and audit policies. */
-export interface AiDocsRuntimeIdentity extends AiDocsConfigurationActor {
+export interface AiAppAssistantRuntimeIdentity extends AiAppAssistantConfigurationActor {
   roles?: readonly string[];
 }
 
-export interface AiDocsConfigurationChangeEvent {
+export interface AiAppAssistantConfigurationChangeEvent {
   reason: "saved" | "revoked" | "connection-tested" | "remote-change";
   reloadRequired: boolean;
   /** A successful provider call already validated the current configuration. */
@@ -48,40 +48,40 @@ export interface AiDocsConfigurationChangeEvent {
   remote: boolean;
 }
 
-export interface AiDocsConfigurationSynchronizer {
-  start(onChange: (event: AiDocsConfigurationChangeEvent) => Promise<void> | void): Promise<() => void> | (() => void);
-  publish(event: AiDocsConfigurationChangeEvent): Promise<void>;
+export interface AiAppAssistantConfigurationSynchronizer {
+  start(onChange: (event: AiAppAssistantConfigurationChangeEvent) => Promise<void> | void): Promise<() => void> | (() => void);
+  publish(event: AiAppAssistantConfigurationChangeEvent): Promise<void>;
 }
 
-export interface AiDocsConfigurationManagerOptions {
-  repository: AiDocsConfigurationRepository;
+export interface AiAppAssistantConfigurationManagerOptions {
+  repository: AiAppAssistantConfigurationRepository;
   /** Defaults to the local in-memory quota implementation. */
-  quotaStore?: AiDocsQuotaStore;
+  quotaStore?: AiAppAssistantQuotaStore;
   /** Environment or deployment defaults. They are never persisted automatically. */
-  defaultConfiguration?: AiDocsConfiguration | (() => AiDocsConfiguration | undefined);
+  defaultConfiguration?: AiAppAssistantConfiguration | (() => AiAppAssistantConfiguration | undefined);
   /** Resolves a secret supplied by the host environment or secret manager. */
-  resolveDefaultApiKey?: (provider: AiDocsConfiguration["provider"]) => string | undefined;
+  resolveDefaultApiKey?: (provider: AiAppAssistantConfiguration["provider"]) => string | undefined;
   apiKeyStorageAvailable?: boolean;
-  defaultQuota?: AiDocsQuotaPolicy;
+  defaultQuota?: AiAppAssistantQuotaPolicy;
   connectionTimeoutMs?: number;
   /** Minimum delay before retrying a disconnected provider on demand. */
   reconnectIntervalMs?: number;
-  synchronizer?: AiDocsConfigurationSynchronizer;
-  testConnection?: (input: AiDocsConnectionTestInput) => Promise<AiDocsConnectionResult>;
-  listModels?: (input: AiDocsCredentials) => Promise<AiModelInfo[]>;
+  synchronizer?: AiAppAssistantConfigurationSynchronizer;
+  testConnection?: (input: AiAppAssistantConnectionTestInput) => Promise<AiAppAssistantConnectionResult>;
+  listModels?: (input: AiAppAssistantCredentials) => Promise<AiModelInfo[]>;
   now?: () => Date;
   createId?: () => string;
   logger?: Pick<Console, "info" | "warn">;
 }
 
-export interface AiDocsConfigurationSaveResult {
+export interface AiAppAssistantConfigurationSaveResult {
   saved: boolean;
-  connection: AiDocsConnectionResult;
-  configuration?: AiDocsManagedConfigurationView;
+  connection: AiAppAssistantConnectionResult;
+  configuration?: AiAppAssistantManagedConfigurationView;
   reloadRequired: boolean;
 }
 
-export type AiDocsManagementErrorCode =
+export type AiAppAssistantManagementErrorCode =
   | "unauthorized"
   | "forbidden"
   | "conflict"
@@ -91,15 +91,15 @@ export type AiDocsManagementErrorCode =
   | "secret_storage_unavailable";
 
 /** Framework-neutral policy error that HTTP adapters can map safely. */
-export class AiDocsManagementError extends Error {
+export class AiAppAssistantManagementError extends Error {
   public constructor(
     readonly status: number,
-    readonly code: AiDocsManagementErrorCode,
+    readonly code: AiAppAssistantManagementErrorCode,
     message: string,
     readonly details?: Record<string, unknown>
   ) {
     super(message);
-    this.name = "AiDocsManagementError";
+    this.name = "AiAppAssistantManagementError";
   }
 }
 
@@ -107,15 +107,15 @@ export class AiDocsManagementError extends Error {
  * Owns provider configuration, access, quota, audit and runtime connection
  * state. Hosts only supply identity mapping, storage and optional defaults.
  */
-export class AiDocsConfigurationManager {
-  readonly #repository: AiDocsConfigurationRepository;
-  readonly #quotaStore: AiDocsQuotaStore;
-  readonly #options: AiDocsConfigurationManagerOptions;
-  readonly #listeners = new Set<(event: AiDocsConfigurationChangeEvent) => Promise<void> | void>();
-  #runtimeConnection: AiDocsRuntimeConnection = { status: "unchecked" };
+export class AiAppAssistantConfigurationManager {
+  readonly #repository: AiAppAssistantConfigurationRepository;
+  readonly #quotaStore: AiAppAssistantQuotaStore;
+  readonly #options: AiAppAssistantConfigurationManagerOptions;
+  readonly #listeners = new Set<(event: AiAppAssistantConfigurationChangeEvent) => Promise<void> | void>();
+  #runtimeConnection: AiAppAssistantRuntimeConnection = { status: "unchecked" };
   #recentConnectionValidation: {
     signature: string;
-    result: Extract<AiDocsConnectionResult, { success: true }>;
+    result: Extract<AiAppAssistantConnectionResult, { success: true }>;
     expiresAt: number;
   } | undefined;
   #stopSynchronization: (() => void) | undefined;
@@ -123,10 +123,10 @@ export class AiDocsConfigurationManager {
   #lastReconnectAttempt = 0;
   #reconnectPromise: Promise<boolean> | undefined;
 
-  public constructor(options: AiDocsConfigurationManagerOptions) {
+  public constructor(options: AiAppAssistantConfigurationManagerOptions) {
     this.#options = options;
     this.#repository = options.repository;
-    this.#quotaStore = options.quotaStore ?? createMemoryAiDocsQuotaStore();
+    this.#quotaStore = options.quotaStore ?? createMemoryAiAppAssistantQuotaStore();
   }
 
   /** Returns the built-in provider catalogue; no credentials are exposed. */
@@ -135,7 +135,7 @@ export class AiDocsConfigurationManager {
   }
 
   /** Discovers models with an explicit key or the currently configured secret. */
-  public async listModels(input: AiDocsCredentials): Promise<AiModelInfo[]> {
+  public async listModels(input: AiAppAssistantCredentials): Promise<AiModelInfo[]> {
     const apiKey = await this.resolveApiKey(input.provider, input.apiKey);
     if (this.#options.listModels) {
       return this.#options.listModels({ ...input, ...(apiKey ? { apiKey } : {}) });
@@ -148,7 +148,7 @@ export class AiDocsConfigurationManager {
   }
 
   /** Notifies the runtime when a provider-affecting setting changes. */
-  public subscribe(listener: (event: AiDocsConfigurationChangeEvent) => Promise<void> | void): () => void {
+  public subscribe(listener: (event: AiAppAssistantConfigurationChangeEvent) => Promise<void> | void): () => void {
     this.#listeners.add(listener);
     return () => this.#listeners.delete(listener);
   }
@@ -196,7 +196,7 @@ export class AiDocsConfigurationManager {
   }
 
   /** Tests credentials and briefly caches a successful result for the next save. */
-  public async testConnection(input: AiDocsConnectionTestInput): Promise<AiDocsConnectionResult> {
+  public async testConnection(input: AiAppAssistantConnectionTestInput): Promise<AiAppAssistantConnectionResult> {
     const apiKey = await this.resolveApiKey(input.provider, input.apiKey);
     const connection = this.#options.testConnection
       ? await this.#options.testConnection({ ...input, ...(apiKey ? { apiKey } : {}) })
@@ -261,12 +261,12 @@ export class AiDocsConfigurationManager {
 
   /** Validates sensitive connection changes, persists safely and records their author. */
   public async save(
-    rawInput: AiDocsConfigurationInput,
-    actor: AiDocsRuntimeIdentity
-  ): Promise<AiDocsConfigurationSaveResult> {
+    rawInput: AiAppAssistantConfigurationInput,
+    actor: AiAppAssistantRuntimeIdentity
+  ): Promise<AiAppAssistantConfigurationSaveResult> {
     const input = normalizeInput(rawInput);
     if (input.apiKey && !this.#options.apiKeyStorageAvailable) {
-      throw new AiDocsManagementError(
+      throw new AiAppAssistantManagementError(
         503,
         "secret_storage_unavailable",
         "Secure API key storage is not configured"
@@ -287,7 +287,7 @@ export class AiDocsConfigurationManager {
 
     let finalConnectionChanged = initialConnectionChanged;
     const persist = this.#repository.mutate?.bind(this.#repository) ?? (async (
-      update: (current: AiDocsConfiguration | undefined) => AiDocsConfiguration | Promise<AiDocsConfiguration>
+      update: (current: AiAppAssistantConfiguration | undefined) => AiAppAssistantConfiguration | Promise<AiAppAssistantConfiguration>
     ) => this.#repository.save(await update(await this.#repository.load())));
     try {
       await persist(async (previous) => {
@@ -328,7 +328,7 @@ export class AiDocsConfigurationManager {
         const connectionSource = usesEnvironmentConnection ? "environment" : "override";
         const persistedApiKey = connectionSource === "override" ? input.apiKey ?? retainedManualKey : undefined;
         const changes = configurationChanges(active, input, allowModelChangesByOthers);
-        const history: AiDocsConfigurationAuditEntry[] = changes.length
+        const history: AiAppAssistantConfigurationAuditEntry[] = changes.length
           ? [...(previousAdministration?.history ?? []), {
               id: this.#options.createId?.() ?? randomUUID(),
               actor,
@@ -336,7 +336,7 @@ export class AiDocsConfigurationManager {
               changes
             }].slice(-200)
           : previousAdministration?.history ?? [];
-        const administration: AiDocsConfigurationAdministration = {
+        const administration: AiAppAssistantConfigurationAdministration = {
           ...(persistedApiKey
             ? input.apiKey
               ? { keyCreatedBy: actor, keyCreatedAt: now }
@@ -369,8 +369,8 @@ export class AiDocsConfigurationManager {
       if (error instanceof ConnectionRejectedError) {
         return { saved: false, connection: error.connection, reloadRequired: false };
       }
-      if (error instanceof AiDocsConfigurationConflictError) {
-        throw new AiDocsManagementError(409, "conflict", error.message);
+      if (error instanceof AiAppAssistantConfigurationConflictError) {
+        throw new AiAppAssistantManagementError(409, "conflict", error.message);
       }
       throw error;
     }
@@ -398,27 +398,27 @@ export class AiDocsConfigurationManager {
   }
 
   /** Removes only the manual key, records the revocation and falls back to defaults. */
-  public async revokeApiKey(actor: AiDocsRuntimeIdentity): Promise<AiDocsManagedConfigurationView> {
+  public async revokeApiKey(actor: AiAppAssistantRuntimeIdentity): Promise<AiAppAssistantManagedConfigurationView> {
     const persist = this.#repository.mutate?.bind(this.#repository) ?? (async (
-      update: (current: AiDocsConfiguration | undefined) => AiDocsConfiguration | Promise<AiDocsConfiguration>
+      update: (current: AiAppAssistantConfiguration | undefined) => AiAppAssistantConfiguration | Promise<AiAppAssistantConfiguration>
     ) => this.#repository.save(await update(await this.#repository.load())));
     try {
       await persist((previous) => {
         if (!previous?.apiKey) {
-          throw new AiDocsManagementError(400, "not_configured", "No manually configured API key is available to revoke");
+          throw new AiAppAssistantManagementError(400, "not_configured", "No manually configured API key is available to revoke");
         }
         const owner = previous.administration?.keyCreatedBy;
         if (owner && owner.id !== actor.id) {
           throw forbidden("Only the user who provided the API key can revoke it");
         }
         const now = this.now();
-        const revocationEntry: AiDocsConfigurationAuditEntry = {
+        const revocationEntry: AiAppAssistantConfigurationAuditEntry = {
           id: this.#options.createId?.() ?? randomUUID(),
           actor,
           changedAt: now,
           changes: [{ field: "apiKey", from: "configured", to: "revoked" }]
         };
-        const administration: AiDocsConfigurationAdministration = {
+        const administration: AiAppAssistantConfigurationAdministration = {
           ...(previous.administration?.modelUpdatedBy ? {
             modelUpdatedBy: previous.administration.modelUpdatedBy,
             modelUpdatedAt: previous.administration.modelUpdatedAt
@@ -439,8 +439,8 @@ export class AiDocsConfigurationManager {
         };
       });
     } catch (error) {
-      if (error instanceof AiDocsConfigurationConflictError) {
-        throw new AiDocsManagementError(409, "conflict", error.message);
+      if (error instanceof AiAppAssistantConfigurationConflictError) {
+        throw new AiAppAssistantManagementError(409, "conflict", error.message);
       }
       throw error;
     }
@@ -456,12 +456,12 @@ export class AiDocsConfigurationManager {
   }
 
   /** Resolves persisted policy against deployment defaults, including the secret. */
-  public async getRuntimeConfiguration(): Promise<AiDocsConfiguration | undefined> {
+  public async getRuntimeConfiguration(): Promise<AiAppAssistantConfiguration | undefined> {
     return this.effectiveConfiguration(await this.#repository.load());
   }
 
   /** Returns the frontend-safe view: secret presence and permissions, never the key. */
-  public async getView(identity?: AiDocsRuntimeIdentity): Promise<AiDocsManagedConfigurationView> {
+  public async getView(identity?: AiAppAssistantRuntimeIdentity): Promise<AiAppAssistantManagedConfigurationView> {
     const stored = await this.#repository.loadView();
     if (stored) {
       const environmentConnection = stored.connectionSource === "environment";
@@ -532,7 +532,7 @@ export class AiDocsConfigurationManager {
   }
 
   /** Minimal launcher state used by clients before rendering the assistant. */
-  public async getAccess(identity: AiDocsRuntimeIdentity): Promise<{
+  public async getAccess(identity: AiAppAssistantRuntimeIdentity): Promise<{
     available: boolean;
     maxConversationTurns: number;
   }> {
@@ -543,7 +543,7 @@ export class AiDocsConfigurationManager {
   }
 
   /** Combines configuration, provider health and application access rules. */
-  public async canUse(identity: AiDocsRuntimeIdentity): Promise<boolean> {
+  public async canUse(identity: AiAppAssistantRuntimeIdentity): Promise<boolean> {
     const configuration = await this.getRuntimeConfiguration();
     if (!configuration || (configuration.provider !== "ollama" && !configuration.apiKey)) return false;
     if (!await this.ensureRuntimeConnection()) return false;
@@ -553,7 +553,7 @@ export class AiDocsConfigurationManager {
   }
 
   /** Atomically consumes one request from the user's active quota window. */
-  public async consumeQuota(identity: AiDocsRuntimeIdentity): Promise<AiDocsQuotaResult> {
+  public async consumeQuota(identity: AiAppAssistantRuntimeIdentity): Promise<AiAppAssistantQuotaResult> {
     const configuration = await this.getRuntimeConfiguration();
     const policy = configuration?.quota ?? this.#options.defaultQuota ?? {
       maxRequests: 20,
@@ -563,13 +563,13 @@ export class AiDocsConfigurationManager {
   }
 
   /** Enforces access and quota immediately before any model call. */
-  public async assertCanAsk(identity: AiDocsRuntimeIdentity): Promise<void> {
+  public async assertCanAsk(identity: AiAppAssistantRuntimeIdentity): Promise<void> {
     if (!await this.canUse(identity)) {
       throw forbidden("AI assistant access is not enabled for this user");
     }
     const quota = await this.consumeQuota(identity);
     if (!quota.allowed) {
-      throw new AiDocsManagementError(
+      throw new AiAppAssistantManagementError(
         429,
         "quota_reached",
         "AI assistant quota reached",
@@ -604,8 +604,8 @@ export class AiDocsConfigurationManager {
   }
 
   private async applyTestResultToActiveConfiguration(
-    input: AiDocsConnectionTestInput,
-    result: AiDocsConnectionResult,
+    input: AiAppAssistantConnectionTestInput,
+    result: AiAppAssistantConnectionResult,
     apiKey?: string
   ): Promise<boolean> {
     const active = await this.getRuntimeConfiguration();
@@ -621,18 +621,18 @@ export class AiDocsConfigurationManager {
     return true;
   }
 
-  private async resolveApiKey(provider: AiDocsConfiguration["provider"], explicit?: string): Promise<string | undefined> {
+  private async resolveApiKey(provider: AiAppAssistantConfiguration["provider"], explicit?: string): Promise<string | undefined> {
     if (explicit?.trim()) return explicit.trim();
     const stored = await this.#repository.load();
     if (stored?.provider === provider && stored.apiKey) return stored.apiKey;
     return this.resolveDefaultApiKey(provider);
   }
 
-  private resolveDefaultApiKey(provider: AiDocsConfiguration["provider"]): string | undefined {
+  private resolveDefaultApiKey(provider: AiAppAssistantConfiguration["provider"]): string | undefined {
     return this.#options.resolveDefaultApiKey?.(provider)?.trim() || undefined;
   }
 
-  private defaultConfiguration(): AiDocsConfiguration | undefined {
+  private defaultConfiguration(): AiAppAssistantConfiguration | undefined {
     const configured = typeof this.#options.defaultConfiguration === "function"
       ? this.#options.defaultConfiguration()
       : this.#options.defaultConfiguration;
@@ -640,7 +640,7 @@ export class AiDocsConfigurationManager {
   }
 
   /** Resolves stored policy-only data against the current deployment connection. */
-  private effectiveConfiguration(stored: AiDocsConfiguration | undefined): AiDocsConfiguration | undefined {
+  private effectiveConfiguration(stored: AiAppAssistantConfiguration | undefined): AiAppAssistantConfiguration | undefined {
     if (!stored) {
       const defaults = this.defaultConfiguration();
       if (!defaults) return undefined;
@@ -670,9 +670,9 @@ export class AiDocsConfigurationManager {
   }
 
   private async validateConnectionForSave(
-    input: AiDocsConfigurationInput,
+    input: AiAppAssistantConfigurationInput,
     apiKey?: string
-  ): Promise<AiDocsConnectionResult> {
+  ): Promise<AiAppAssistantConnectionResult> {
     const signature = this.connectionSignature(input.provider, input.model, apiKey, input.baseURL);
     if (this.#recentConnectionValidation &&
       this.#recentConnectionValidation.expiresAt > Date.now() &&
@@ -688,7 +688,7 @@ export class AiDocsConfigurationManager {
   }
 
   private connectionSignature(
-    provider: AiDocsConfiguration["provider"],
+    provider: AiAppAssistantConfiguration["provider"],
     model: string,
     apiKey?: string,
     baseURL?: string
@@ -698,7 +698,7 @@ export class AiDocsConfigurationManager {
       .digest("hex");
   }
 
-  private lastKnownConnection(provider: AiDocsConfiguration["provider"], model: string): AiDocsConnectionResult {
+  private lastKnownConnection(provider: AiAppAssistantConfiguration["provider"], model: string): AiAppAssistantConnectionResult {
     const identifier = `${provider}:${model}`;
     if (this.#runtimeConnection.status === "connected" && this.#runtimeConnection.model === identifier) {
       return { success: true, model: identifier, latencyMs: 0 };
@@ -719,12 +719,12 @@ export class AiDocsConfigurationManager {
     return (this.#options.now?.() ?? new Date()).toISOString();
   }
 
-  private async publishAndEmit(event: AiDocsConfigurationChangeEvent): Promise<void> {
+  private async publishAndEmit(event: AiAppAssistantConfigurationChangeEvent): Promise<void> {
     await this.#options.synchronizer?.publish(event);
     await this.emit(event);
   }
 
-  private async emit(event: AiDocsConfigurationChangeEvent): Promise<void> {
+  private async emit(event: AiAppAssistantConfigurationChangeEvent): Promise<void> {
     await Promise.all([...this.#listeners].map((listener) => listener(event)));
   }
 }
@@ -733,11 +733,11 @@ export class AiDocsConfigurationManager {
  * Portable cross-instance invalidation using any key/value store. It avoids a
  * Redis-specific dependency and gives every process an eventual reload.
  */
-export function createPollingAiDocsConfigurationSynchronizer(
-  store: AiDocsKeyValueStore,
+export function createPollingAiAppAssistantConfigurationSynchronizer(
+  store: AiAppAssistantKeyValueStore,
   options: { key?: string; intervalMs?: number } = {}
-): AiDocsConfigurationSynchronizer {
-  const key = options.key?.trim() || "ai-docs:configuration-revision";
+): AiAppAssistantConfigurationSynchronizer {
+  const key = options.key?.trim() || "ai-app-assistant:configuration-revision";
   const intervalMs = Math.max(250, Math.round(options.intervalMs ?? 2_000));
   let current: string | null | undefined;
   return {
@@ -769,9 +769,9 @@ export function createPollingAiDocsConfigurationSynchronizer(
   };
 }
 
-function parseSynchronizationEvent(value: string): AiDocsConfigurationChangeEvent {
+function parseSynchronizationEvent(value: string): AiAppAssistantConfigurationChangeEvent {
   try {
-    const parsed = JSON.parse(value) as { event?: Partial<AiDocsConfigurationChangeEvent> };
+    const parsed = JSON.parse(value) as { event?: Partial<AiAppAssistantConfigurationChangeEvent> };
     const event = parsed.event;
     if (event && typeof event.reloadRequired === "boolean" && typeof event.connectionValidated === "boolean") {
       return {
@@ -792,7 +792,7 @@ function parseSynchronizationEvent(value: string): AiDocsConfigurationChangeEven
   };
 }
 
-function normalizeInput(input: AiDocsConfigurationInput): AiDocsConfigurationInput {
+function normalizeInput(input: AiAppAssistantConfigurationInput): AiAppAssistantConfigurationInput {
   const { apiKey: rawApiKey, baseURL: rawBaseURL, ...required } = input;
   const apiKey = rawApiKey?.trim();
   const baseURL = rawBaseURL?.trim();
@@ -806,15 +806,15 @@ function normalizeInput(input: AiDocsConfigurationInput): AiDocsConfigurationInp
 }
 
 function connectionChanged(
-  active: AiDocsConfiguration | undefined,
-  input: AiDocsConfigurationInput
+  active: AiAppAssistantConfiguration | undefined,
+  input: AiAppAssistantConfigurationInput
 ): boolean {
   return !active || !sameConnection(active, input) || Boolean(input.apiKey);
 }
 
 function sameConnection(
-  left: Pick<AiDocsConfiguration, "provider" | "model" | "baseURL">,
-  right: Pick<AiDocsConfigurationInput, "provider" | "model" | "baseURL">
+  left: Pick<AiAppAssistantConfiguration, "provider" | "model" | "baseURL">,
+  right: Pick<AiAppAssistantConfigurationInput, "provider" | "model" | "baseURL">
 ): boolean {
   return left.provider === right.provider &&
     left.model === right.model &&
@@ -822,16 +822,16 @@ function sameConnection(
 }
 
 class ConnectionRejectedError extends Error {
-  public constructor(readonly connection: Extract<AiDocsConnectionResult, { success: false }>) {
+  public constructor(readonly connection: Extract<AiAppAssistantConnectionResult, { success: false }>) {
     super(connection.error.message);
   }
 }
 
 function permissions(
-  administration: AiDocsConfigurationAdministration | undefined,
+  administration: AiAppAssistantConfigurationAdministration | undefined,
   storedApiKey: boolean,
-  identity?: AiDocsRuntimeIdentity
-): Pick<AiDocsManagedConfigurationView, "canChangeModel" | "canManageCredentials" | "canManageModelPolicy" | "canRevokeApiKey"> {
+  identity?: AiAppAssistantRuntimeIdentity
+): Pick<AiAppAssistantManagedConfigurationView, "canChangeModel" | "canManageCredentials" | "canManageModelPolicy" | "canRevokeApiKey"> {
   const ownerId = administration?.keyCreatedBy?.id;
   const ownsKey = !ownerId || ownerId === identity?.id;
   return {
@@ -843,11 +843,11 @@ function permissions(
 }
 
 function configurationChanges(
-  previous: AiDocsConfiguration | undefined,
-  input: AiDocsConfigurationInput,
+  previous: AiAppAssistantConfiguration | undefined,
+  input: AiAppAssistantConfigurationInput,
   allowModelChangesByOthers: boolean
-): AiDocsConfigurationAuditChange[] {
-  const changes: AiDocsConfigurationAuditChange[] = [];
+): AiAppAssistantConfigurationAuditChange[] {
+  const changes: AiAppAssistantConfigurationAuditChange[] = [];
   if (!previous || previous.provider !== input.provider) {
     changes.push({ field: "provider", ...(previous ? { from: previous.provider } : {}), to: input.provider });
   }
@@ -871,23 +871,23 @@ function configurationChanges(
   return changes;
 }
 
-function forbidden(message: string): AiDocsManagementError {
-  return new AiDocsManagementError(403, "forbidden", message);
+function forbidden(message: string): AiAppAssistantManagementError {
+  return new AiAppAssistantManagementError(403, "forbidden", message);
 }
 
 // Compile-time guarantee that the AI SDK result remains compatible with the
 // transport-safe contract used by generic settings clients.
-const _connectionResultCompatibility: AiDocsConnectionResult | undefined = undefined as AiSdkConnectionTestResult | undefined;
+const _connectionResultCompatibility: AiAppAssistantConnectionResult | undefined = undefined as AiSdkConnectionTestResult | undefined;
 void _connectionResultCompatibility;
 
 export type {
-  AiDocsConfigurationActor,
-  AiDocsConfigurationAdministration,
-  AiDocsConfigurationFieldSource,
-  AiDocsConfigurationInput,
-  AiDocsConnectionResult,
-  AiDocsConnectionTestInput,
-  AiDocsCredentials,
-  AiDocsManagedConfigurationView,
-  AiDocsRuntimeConnection
+  AiAppAssistantConfigurationActor,
+  AiAppAssistantConfigurationAdministration,
+  AiAppAssistantConfigurationFieldSource,
+  AiAppAssistantConfigurationInput,
+  AiAppAssistantConnectionResult,
+  AiAppAssistantConnectionTestInput,
+  AiAppAssistantCredentials,
+  AiAppAssistantManagedConfigurationView,
+  AiAppAssistantRuntimeConnection
 } from "@123toto/ai-app-assistant-contracts";

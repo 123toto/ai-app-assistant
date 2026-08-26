@@ -1,14 +1,14 @@
 import {
   PROTOCOL_VERSION,
-  askDocumentationRequestSchema,
+  aiAppAssistantRequestSchema,
   generatedAnswerSchema,
-  type AskDocumentationRequest,
-  type AskDocumentationResponse
+  type AiAppAssistantRequest,
+  type AiAppAssistantResponse
 } from "@123toto/ai-app-assistant-contracts";
 import { evaluateConfidence } from "./confidence.js";
 import type {
   DocumentationSource,
-  DocsAssistantOptions,
+  AiAppAssistantOptions,
   EvidenceBundle,
   EvidenceItem
 } from "./types.js";
@@ -17,23 +17,23 @@ const FALLBACK_CONTEXT_WINDOW_TOKENS = 128_000;
 const FALLBACK_OUTPUT_TOKENS = 8_000;
 const FALLBACK_CHARACTERS_PER_TOKEN = 2;
 
-export type DocsAssistantStreamEvent =
+export type AiAppAssistantStreamEvent =
   | { type: "status"; phase: "preparing" | "generating" }
   | { type: "partial"; text: string }
   | { type: "retry"; attempt: number; maxRetries: number; delayMs: number }
-  | { type: "complete"; response: AskDocumentationResponse };
+  | { type: "complete"; response: AiAppAssistantResponse };
 
 /** Stateful facade whose static documentation is prepared only once. */
-export interface DocsAssistant {
+export interface AiAppAssistant {
   answer(
-    request: AskDocumentationRequest,
+    request: AiAppAssistantRequest,
     options?: { signal?: AbortSignal }
-  ): Promise<AskDocumentationResponse>;
+  ): Promise<AiAppAssistantResponse>;
   /** Streams provider-neutral progress and always ends with a complete event. */
   stream(
-    request: AskDocumentationRequest,
+    request: AiAppAssistantRequest,
     options?: { signal?: AbortSignal }
-  ): AsyncGenerator<DocsAssistantStreamEvent, AskDocumentationResponse>;
+  ): AsyncGenerator<AiAppAssistantStreamEvent, AiAppAssistantResponse>;
 }
 
 /**
@@ -44,7 +44,7 @@ export interface DocsAssistant {
  * element and the user's prompt. This keeps the public integration small and
  * lets provider-side prompt caching reuse the stable document prefix.
  */
-export function createDocsAssistant(options: DocsAssistantOptions): DocsAssistant {
+export function createAiAppAssistant(options: AiAppAssistantOptions): AiAppAssistant {
   const minimumEvidence = clampInteger(
     options.policies?.minimumEvidence ?? 1,
     1,
@@ -52,20 +52,20 @@ export function createDocsAssistant(options: DocsAssistantOptions): DocsAssistan
   );
   const documents = prepareDocuments(options.documents ?? []);
 
-  const prepare = (request: AskDocumentationRequest): {
-    validated: AskDocumentationRequest;
+  const prepare = (request: AiAppAssistantRequest): {
+    validated: AiAppAssistantRequest;
     bundle: EvidenceBundle;
   } => {
-    const validated = askDocumentationRequestSchema.parse(request);
+    const validated = aiAppAssistantRequestSchema.parse(request);
     return { validated, bundle: prepareBundle(validated, documents, options) };
   };
 
   const finalize = (
-    validated: AskDocumentationRequest,
+    validated: AiAppAssistantRequest,
     bundle: EvidenceBundle,
     generatedInput: unknown,
     startedAt: number
-  ): AskDocumentationResponse => {
+  ): AiAppAssistantResponse => {
     const generated = generatedAnswerSchema.parse(generatedInput);
     const usage = readTokenUsage(generatedInput);
     const confidence = evaluateConfidence(bundle, generated, minimumEvidence);
@@ -198,9 +198,9 @@ function prepareDocuments(sources: DocumentationSource[]): readonly PreparedDocu
 }
 
 function prepareBundle(
-  request: AskDocumentationRequest,
+  request: AiAppAssistantRequest,
   documents: readonly PreparedDocument[],
-  options: DocsAssistantOptions
+  options: AiAppAssistantOptions
 ): EvidenceBundle {
   const capabilities = options.generator.capabilities;
   const contextWindow = capabilities?.contextWindowTokens ?? FALLBACK_CONTEXT_WINDOW_TOKENS;
@@ -238,7 +238,7 @@ function prepareBundle(
       content: boundEvidence(
         request.selectedElementHtml,
         selectedLimit,
-        "AI_DOCS_SELECTED_ELEMENT_TRUNCATED"
+        "AI_APP_ASSISTANT_SELECTED_ELEMENT_TRUNCATED"
       ),
       relevance: 1
     });
@@ -255,7 +255,7 @@ function prepareBundle(
   for (const document of documents) {
     if (remainingDocuments <= 0) break;
     const limit = Math.min(documentLimit, remainingDocuments);
-    const content = boundEvidence(document.content, limit, "AI_DOCS_DOCUMENT_TRUNCATED");
+    const content = boundEvidence(document.content, limit, "AI_APP_ASSISTANT_DOCUMENT_TRUNCATED");
     remainingDocuments -= content.length;
     items.push({
       source: "document",
@@ -291,8 +291,8 @@ function boundHtml(
 ): string {
   const limit = optionalBound(maxChars, 1_000, 8_000_000);
   return alreadyTruncated
-    ? `${content.slice(0, limit)}\n<!-- AI_DOCS_HTML_TRUNCATED -->`
-    : boundEvidence(content, limit, "AI_DOCS_HTML_TRUNCATED");
+    ? `${content.slice(0, limit)}\n<!-- AI_APP_ASSISTANT_HTML_TRUNCATED -->`
+    : boundEvidence(content, limit, "AI_APP_ASSISTANT_HTML_TRUNCATED");
 }
 
 /** Truncates one evidence item while making the loss explicit to the model. */
@@ -326,7 +326,7 @@ function insufficientResponse(
   requestId: string,
   model: string,
   durationMs: number
-): AskDocumentationResponse {
+): AiAppAssistantResponse {
   return {
     protocolVersion: PROTOCOL_VERSION,
     requestId,

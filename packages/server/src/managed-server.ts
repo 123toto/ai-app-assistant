@@ -1,92 +1,92 @@
 import type { DocumentationSource } from "./types.js";
 import {
-  createManagedAiDocsFetchHandlers,
-  type ManagedAiDocsFetchHandlerOptions,
-  type ManagedAiDocsFetchHandlers
+  createManagedAiAppAssistantFetchHandlers,
+  type ManagedAiAppAssistantFetchHandlerOptions,
+  type ManagedAiAppAssistantFetchHandlers
 } from "./managed-http.js";
 import {
-  createManagedAiDocsRuntime,
-  type CreateManagedAiDocsRuntimeOptions,
-  type ManagedAiDocsRuntime
+  createManagedAiAppAssistantRuntime,
+  type CreateManagedAiAppAssistantRuntimeOptions,
+  type ManagedAiAppAssistantRuntime
 } from "./managed-runtime.js";
 import {
-  AiDocsConfigurationManager,
-  createPollingAiDocsConfigurationSynchronizer,
-  type AiDocsConfigurationManagerOptions,
-  type AiDocsRuntimeIdentity
+  AiAppAssistantConfigurationManager,
+  createPollingAiAppAssistantConfigurationSynchronizer,
+  type AiAppAssistantConfigurationManagerOptions,
+  type AiAppAssistantRuntimeIdentity
 } from "./management.js";
 import {
   createAes256GcmSecretProtector,
-  createAiDocsConfigurationRepository,
+  createAiAppAssistantConfigurationRepository,
   createDisabledSecretProtector,
-  createMemoryAiDocsStore,
-  createRedisAiDocsStore,
-  type AiDocsRedisClient,
-  type AiDocsSecretProtector
+  createMemoryAiAppAssistantStore,
+  createRedisAiAppAssistantStore,
+  type AiAppAssistantRedisClient,
+  type AiAppAssistantSecretProtector
 } from "./configuration.js";
 import {
-  createMemoryAiDocsQuotaStore,
-  createRedisAiDocsQuotaStore,
-  type AiDocsRedisQuotaClient,
-  type AiDocsQuotaStore
+  createMemoryAiAppAssistantQuotaStore,
+  createRedisAiAppAssistantQuotaStore,
+  type AiAppAssistantRedisQuotaClient,
+  type AiAppAssistantQuotaStore
 } from "./quota.js";
 import {
-  createMemoryAiDocsTelemetryStore,
-  createRedisAiDocsTelemetryStore,
-  type AiDocsTelemetryStore
+  createMemoryAiAppAssistantTelemetryStore,
+  createRedisAiAppAssistantTelemetryStore,
+  type AiAppAssistantTelemetryStore
 } from "./telemetry.js";
 
-export type AiDocsManagedStorage =
+export type AiAppAssistantManagedStorage =
   | { type: "memory" }
   | {
       type: "redis";
-      client: AiDocsRedisClient & AiDocsRedisQuotaClient;
-      /** Shared namespace. Defaults to `ai-docs:`. */
+      client: AiAppAssistantRedisClient & AiAppAssistantRedisQuotaClient;
+      /** Shared namespace. Defaults to `ai-app-assistant:`. */
       prefix?: string;
       synchronizationIntervalMs?: number;
     };
 
-export interface AiDocsManagedConfigurationSetup extends Omit<
-  AiDocsConfigurationManagerOptions,
+export interface AiAppAssistantManagedConfigurationSetup extends Omit<
+  AiAppAssistantConfigurationManagerOptions,
   "apiKeyStorageAvailable" | "quotaStore" | "repository" | "synchronizer"
 > {
   /** Creates configuration, quota and synchronization adapters automatically. */
-  storage?: AiDocsManagedStorage;
+  storage?: AiAppAssistantManagedStorage;
   /** AES-256-GCM key used to persist administrator-supplied API keys. */
   encryptionKey?: string;
   /** Alternative secret manager; takes precedence over encryptionKey. */
-  secretProtector?: AiDocsSecretProtector;
+  secretProtector?: AiAppAssistantSecretProtector;
   repositoryKey?: string;
-  quotaStore?: AiDocsQuotaStore;
-  synchronizer?: AiDocsConfigurationManagerOptions["synchronizer"];
+  quotaStore?: AiAppAssistantQuotaStore;
+  synchronizer?: AiAppAssistantConfigurationManagerOptions["synchronizer"];
   apiKeyStorageAvailable?: boolean;
 }
 
-export interface CreateManagedAiDocsServerOptions<
-  TIdentity extends AiDocsRuntimeIdentity,
+export interface CreateManagedAiAppAssistantServerOptions<
+  TIdentity extends AiAppAssistantRuntimeIdentity,
   TNativeContext = undefined
 > {
   /** Pass an existing manager, or its construction options for the common case. */
   configuration:
-    | AiDocsConfigurationManager
-    | AiDocsConfigurationManagerOptions
-    | AiDocsManagedConfigurationSetup;
+    | AiAppAssistantConfigurationManager
+    | AiAppAssistantConfigurationManagerOptions
+    | AiAppAssistantManagedConfigurationSetup;
   /** Stable application documentation. It can also be supplied later with setDocuments(). */
   documents?: DocumentationSource[];
-  runtime?: Omit<CreateManagedAiDocsRuntimeOptions<TIdentity>, "configuration" | "documents">;
-  http?: Omit<ManagedAiDocsFetchHandlerOptions<TIdentity, TNativeContext>, "runtime">;
+  runtime?: Omit<CreateManagedAiAppAssistantRuntimeOptions<TIdentity>, "configuration" | "documents">;
+  http?: Omit<ManagedAiAppAssistantFetchHandlerOptions<TIdentity, TNativeContext>, "runtime">;
   /** Enabled by default; Redis configuration automatically makes it persistent. */
-  telemetry?: false | { store?: AiDocsTelemetryStore; recentFailureLimit?: number };
+  telemetry?: false | { store?: AiAppAssistantTelemetryStore; recentFailureLimit?: number };
 }
 
-export interface ManagedAiDocsServer<
-  TIdentity extends AiDocsRuntimeIdentity,
+export interface ManagedAiAppAssistantServer<
+  TIdentity extends AiAppAssistantRuntimeIdentity,
   TNativeContext = undefined
 > {
-  readonly configuration: AiDocsConfigurationManager;
-  readonly runtime: ManagedAiDocsRuntime<TIdentity>;
-  readonly fetch: ManagedAiDocsFetchHandlers<TNativeContext>;
-  readonly telemetry?: AiDocsTelemetryStore;
+  readonly configuration: AiAppAssistantConfigurationManager;
+  readonly runtime: ManagedAiAppAssistantRuntime<TIdentity>;
+  readonly fetch: ManagedAiAppAssistantFetchHandlers<TNativeContext>;
+  readonly telemetry?: AiAppAssistantTelemetryStore;
   initialize(): Promise<void>;
   setDocuments(documents: DocumentationSource[]): Promise<void>;
   dispose(): void;
@@ -99,21 +99,21 @@ export interface ManagedAiDocsServer<
  * Framework integrations only need to adapt their native request/response and
  * pass the authenticated application identity through `http.resolveIdentity`.
  */
-export function createManagedAiDocsServer<
-  TIdentity extends AiDocsRuntimeIdentity,
+export function createManagedAiAppAssistantServer<
+  TIdentity extends AiAppAssistantRuntimeIdentity,
   TNativeContext = undefined
 >(
-  options: CreateManagedAiDocsServerOptions<TIdentity, TNativeContext>
-): ManagedAiDocsServer<TIdentity, TNativeContext> {
+  options: CreateManagedAiAppAssistantServerOptions<TIdentity, TNativeContext>
+): ManagedAiAppAssistantServer<TIdentity, TNativeContext> {
   const telemetry = resolveTelemetry(options.configuration, options.telemetry);
   const configuration = resolveConfiguration(options.configuration);
-  const runtime = createManagedAiDocsRuntime<TIdentity>({
+  const runtime = createManagedAiAppAssistantRuntime<TIdentity>({
     configuration,
     ...(options.documents ? { documents: options.documents } : {}),
     ...options.runtime,
     ...(telemetry ? { telemetryStore: telemetry } : {})
   });
-  const fetch = createManagedAiDocsFetchHandlers<TIdentity, TNativeContext>({
+  const fetch = createManagedAiAppAssistantFetchHandlers<TIdentity, TNativeContext>({
     runtime,
     ...options.http
   });
@@ -131,37 +131,37 @@ export function createManagedAiDocsServer<
 
 function resolveTelemetry(
   configuration:
-    | AiDocsConfigurationManager
-    | AiDocsConfigurationManagerOptions
-    | AiDocsManagedConfigurationSetup,
-  telemetry: CreateManagedAiDocsServerOptions<AiDocsRuntimeIdentity>["telemetry"]
-): AiDocsTelemetryStore | undefined {
+    | AiAppAssistantConfigurationManager
+    | AiAppAssistantConfigurationManagerOptions
+    | AiAppAssistantManagedConfigurationSetup,
+  telemetry: CreateManagedAiAppAssistantServerOptions<AiAppAssistantRuntimeIdentity>["telemetry"]
+): AiAppAssistantTelemetryStore | undefined {
   if (telemetry === false) return undefined;
   if (telemetry?.store) return telemetry.store;
   const recentFailureLimit = telemetry?.recentFailureLimit;
-  if (!(configuration instanceof AiDocsConfigurationManager)
+  if (!(configuration instanceof AiAppAssistantConfigurationManager)
     && !("repository" in configuration)
     && configuration.storage?.type === "redis") {
-    return createRedisAiDocsTelemetryStore(configuration.storage.client, {
-      prefix: `${configuration.storage.prefix ?? "ai-docs:"}telemetry:`,
+    return createRedisAiAppAssistantTelemetryStore(configuration.storage.client, {
+      prefix: `${configuration.storage.prefix ?? "ai-app-assistant:"}telemetry:`,
       ...(recentFailureLimit !== undefined ? { recentFailureLimit } : {})
     });
   }
-  return createMemoryAiDocsTelemetryStore(
+  return createMemoryAiAppAssistantTelemetryStore(
     recentFailureLimit !== undefined ? { recentFailureLimit } : undefined
   );
 }
 
 function resolveConfiguration(
   configuration:
-    | AiDocsConfigurationManager
-    | AiDocsConfigurationManagerOptions
-    | AiDocsManagedConfigurationSetup
-): AiDocsConfigurationManager {
+    | AiAppAssistantConfigurationManager
+    | AiAppAssistantConfigurationManagerOptions
+    | AiAppAssistantManagedConfigurationSetup
+): AiAppAssistantConfigurationManager {
   // Keep advanced/custom managers untouched; assemble storage, encryption,
   // quotas and synchronization only for the plug-and-play configuration.
-  if (configuration instanceof AiDocsConfigurationManager) return configuration;
-  if ("repository" in configuration) return new AiDocsConfigurationManager(configuration);
+  if (configuration instanceof AiAppAssistantConfigurationManager) return configuration;
+  if ("repository" in configuration) return new AiAppAssistantConfigurationManager(configuration);
 
   const {
     storage = { type: "memory" },
@@ -173,27 +173,27 @@ function resolveConfiguration(
     apiKeyStorageAvailable,
     ...manager
   } = configuration;
-  const prefix = storage.type === "redis" ? storage.prefix ?? "ai-docs:" : "ai-docs:";
+  const prefix = storage.type === "redis" ? storage.prefix ?? "ai-app-assistant:" : "ai-app-assistant:";
   const store = storage.type === "redis"
-    ? createRedisAiDocsStore(storage.client, { prefix: `${prefix}persistent:` })
-    : createMemoryAiDocsStore();
+    ? createRedisAiAppAssistantStore(storage.client, { prefix: `${prefix}persistent:` })
+    : createMemoryAiAppAssistantStore();
   const protector = secretProtector
     ?? (encryptionKey
       ? createAes256GcmSecretProtector(encryptionKey)
       : createDisabledSecretProtector());
-  return new AiDocsConfigurationManager({
+  return new AiAppAssistantConfigurationManager({
     ...manager,
-    repository: createAiDocsConfigurationRepository({
+    repository: createAiAppAssistantConfigurationRepository({
       store,
       secretProtector: protector,
       ...(repositoryKey ? { key: repositoryKey } : {})
     }),
     quotaStore: quotaStore ?? (storage.type === "redis"
-      ? createRedisAiDocsQuotaStore(storage.client, { prefix: `${prefix}quota:` })
-      : createMemoryAiDocsQuotaStore()),
+      ? createRedisAiAppAssistantQuotaStore(storage.client, { prefix: `${prefix}quota:` })
+      : createMemoryAiAppAssistantQuotaStore()),
     apiKeyStorageAvailable: apiKeyStorageAvailable ?? Boolean(secretProtector || encryptionKey),
     ...(synchronizer ? { synchronizer } : storage.type === "redis" ? {
-      synchronizer: createPollingAiDocsConfigurationSynchronizer(store, {
+      synchronizer: createPollingAiAppAssistantConfigurationSynchronizer(store, {
         key: "configuration-revision",
         intervalMs: storage.synchronizationIntervalMs ?? 2_000
       })
