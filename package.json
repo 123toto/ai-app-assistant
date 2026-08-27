@@ -12,7 +12,8 @@
     "dev": "pnpm --parallel --filter './packages/**' dev",
     "test": "pnpm -r test",
     "typecheck": "pnpm --filter @123toto/ai-app-assistant-contracts build && pnpm --filter @123toto/ai-app-assistant-client build && pnpm --filter @123toto/ai-app-assistant-server build && pnpm -r typecheck",
-    "check": "pnpm typecheck && pnpm test && pnpm build"
+    "check:site": "node --check site/demo.js && node scripts/check-site.mjs",
+    "check": "pnpm typecheck && pnpm test && pnpm build && pnpm check:site"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

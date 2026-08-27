@@ -4,7 +4,7 @@
   "license": "MIT",
   "description": "Framework-neutral browser client and UI for contextual in-app AI assistants",
   "repository": { "type": "git", "url": "git+https://github.com/123toto/ai-app-assistant.git", "directory": "packages/client-core" },
-  "homepage": "https://github.com/123toto/ai-app-assistant#readme",
+  "homepage": "https://123toto.github.io/ai-app-assistant/",
   "bugs": { "url": "https://github.com/123toto/ai-app-assistant/issues" },
   "keywords": ["ai", "documentation", "assistant", "web-component", "angular"],
   "publishConfig": { "access": "public" },

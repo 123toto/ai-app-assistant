@@ -2,6 +2,8 @@
 
 Framework-neutral packages for adding a contextual AI App Assistant to an existing application.
 
+**[Website and interactive demo](https://123toto.github.io/ai-app-assistant/)**
+
 The assistant answers questions from:
 
 - stable application documents loaded by the backend;
@@ -169,6 +171,7 @@ Any Vercel AI SDK `LanguageModel` or custom `AnswerGenerator` can be injected in
 
 - [Programmatic usage](./docs/programmatic-usage.md)
 - [Architecture](./docs/architecture.md)
+- [Extension points](./docs/extension-points.md)
 - [Public API](./docs/public-api.md)
 - [NPM release checklist](./docs/npm-release.md)
 

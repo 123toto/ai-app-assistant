@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Try the AI App Assistant interaction flow: open, select, ask and verify." />
+    <meta name="theme-color" content="#080d19" />
+    <link rel="canonical" href="https://123toto.github.io/ai-app-assistant/demo.html" />
+    <meta property="og:title" content="AI App Assistant interactive demo" />
+    <meta property="og:description" content="A faithful browser simulation of the actual library UI and interaction flow." />
+    <meta property="og:image" content="https://123toto.github.io/ai-app-assistant/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AI App Assistant interactive demo" />
+    <meta name="twitter:description" content="A faithful browser simulation of the actual library UI and interaction flow." />
+    <meta name="twitter:image" content="https://123toto.github.io/ai-app-assistant/og.png" />
+    <title>Interactive demo | AI App Assistant</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./index.html" aria-label="AI App Assistant home"><span class="brand-mark" aria-hidden="true"><i>✦</i><b>✦</b></span><span><strong>AI APP</strong><small>ASSISTANT</small></span></a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-navigation"><span aria-hidden="true"></span>Menu</button>
+      <nav id="site-navigation" aria-label="Main navigation"><a href="./index.html">Overview</a><a class="active" href="./demo.html">Live demo</a><a href="./integrations.html">Integrations</a><a class="nav-github" href="https://github.com/123toto/ai-app-assistant">GitHub <span>↗</span></a></nav>
+    </header>
+
+    <main>
+      <section class="page-hero demo-page-hero">
+        <p class="eyebrow">Interactive demo</p>
+        <h1>See it work.<br /><em>Try it yourself.</em></h1>
+        <p>This guided simulation mirrors interactions and visual states already implemented by the library. It runs locally in the page and makes no model request.</p>
+      </section>
+
+      <section class="guided-demo" data-real-demo>
+        <div class="interactive-demo-frame">
+          <div class="demo-guide">
+            <div class="demo-guide-copy"><small>Interactive flow</small><div class="demo-guide-title"><strong>Try it in the screen below.</strong><button type="button" data-demo-reset>Reset flow</button></div><p data-guide-copy>Open the assistant using the floating button in the bottom-right corner.</p></div>
+            <div class="demo-progress"><ol aria-label="Interaction progress">
+              <li class="active" data-guide-step="1" aria-label="Open the assistant"><span>1</span></li>
+              <li data-guide-step="2" aria-label="Select an element"><span>2</span></li>
+              <li data-guide-step="3" aria-label="Ask a question"><span>3</span></li>
+              <li data-guide-step="4" aria-label="Check the answer"><span>4</span></li>
+            </ol></div>
+          </div>
+
+          <div class="real-demo-shell">
+          <div class="demo-browser-bar"><div><i></i><i></i><i></i></div><span>acme-desk.example / service-requests</span><b>Generic application</b></div>
+          <div class="real-app">
+            <aside class="real-app-nav">
+              <div class="real-app-nav-header">
+                <button class="real-app-menu-toggle" type="button" data-app-menu-toggle aria-expanded="false" aria-controls="demo-app-menu" aria-label="Open AcmeDesk navigation"><span aria-hidden="true"></span></button>
+                <strong>ACME<span>DESK</span></strong>
+              </div>
+              <div class="real-app-menu" id="demo-app-menu" data-app-menu>
+                <a class="active selectable" href="#demo-app" data-selectable data-demo-view="requests" data-selection-label="Navigation · Requests"><span>⌂</span>Requests</a>
+                <a class="selectable" href="#demo-app" data-selectable data-demo-view="assets" data-selection-label="Navigation · Assets"><span>□</span>Assets</a>
+                <a class="selectable" href="#demo-app" data-selectable data-demo-view="reports" data-selection-label="Navigation · Reports"><span>◇</span>Reports</a>
+                <small>Workspace</small>
+                <a class="selectable" href="#demo-app" data-selectable data-demo-view="settings" data-selection-label="Navigation · Settings"><span>⚙</span>Settings</a>
+              </div>
+            </aside>
+
+            <div class="real-app-content" id="demo-app">
+              <div class="app-heading"><div><small data-view-kicker>Operations workspace</small><h2 data-view-title>Service requests</h2><p data-view-subtitle>Track and resolve workplace requests.</p></div><button class="selectable" type="button" data-selectable data-selection-label="Action · New request">New request</button></div>
+              <div class="app-toolbar" aria-label="Request views">
+                <div><button class="active selectable" type="button" data-selectable data-selection-label="View · All requests">All requests</button><button class="selectable" type="button" data-selectable data-selection-label="View · My team">My team</button><button class="selectable" type="button" data-selectable data-selection-label="View · Needs attention">Needs attention <span>7</span></button></div>
+                <button class="selectable" type="button" data-selectable data-selection-label="Action · Search requests">⌕ Search</button>
+              </div>
+              <div class="app-stats"><article class="selectable" data-selectable data-selection-label="Metric · 24 open requests"><small>Open</small><strong>24</strong><span>3 new today</span></article><article class="selectable" data-selectable data-selection-label="Metric · 7 waiting requests"><small>Waiting</small><strong>7</strong><span>Needs review</span></article><article class="selectable" data-selectable data-selection-label="Metric · 86% resolved"><small>Resolved</small><strong>86%</strong><span>Last 30 days</span></article></div>
+              <div class="app-list">
+                <header><strong data-list-title>Recent requests</strong><div><button class="selectable" type="button" data-selectable data-selection-label="Action · Change table columns">Columns</button><button class="selectable" type="button" data-selectable data-selection-label="Action · Filter requests">Filter</button></div></header>
+                <button class="app-row selectable" type="button" data-selectable data-selection-label="Request #1048 · Replace meeting-room display">
+                  <span>#1048</span><div><strong>Replace meeting-room display</strong><small>Facilities · North office</small></div><b class="status blocked">Blocked</b>
+                </button>
+                <button class="app-row selectable" type="button" data-selectable data-selection-label="Request #1047 · Onboard support agent">
+                  <span>#1047</span><div><strong>Onboard a new support agent</strong><small>People ops · Remote</small></div><b class="status review">Review</b>
+                </button>
+                <button class="app-row selectable" type="button" data-selectable data-selection-label="Request #1046 · Renew analytics workspace">
+                  <span>#1046</span><div><strong>Renew analytics workspace</strong><small>Data · West office</small></div><b class="status open">Open</b>
+                </button>
+              </div>
+              <div class="app-detail selectable" data-selectable data-selection-label="Approval requirements panel"><small data-detail-title>Approval requirements</small><p data-detail-copy>A site readiness check is required for equipment requests.</p><button class="selectable" type="button" data-selectable data-selection-label="Action · View contextual details">View details</button></div>
+            </div>
+
+            <div class="selection-hud" data-selection-hud hidden><span>Select an element on the page</span><kbd>Esc</kbd><button type="button" data-cancel-selection>Cancel</button></div>
+
+            <button class="real-ai-launcher" type="button" data-assistant-open aria-label="Ask AI">
+              <span class="launcher-orbit"><span class="real-avatar">✦</span><i>✦</i><i>✦</i><i>✦</i></span><span class="launcher-label">Ask AI</span>
+            </button>
+
+            <aside class="real-ai-panel" data-assistant-panel aria-label="AI App Assistant" hidden>
+              <header class="real-ai-header"><div class="real-ai-identity"><span class="real-avatar">✦</span><div><strong>AI guide</strong><small>Help about this page</small></div></div><div><button type="button" data-new-conversation title="New conversation">↻</button><button type="button" title="Detach">↗</button><button type="button" data-assistant-close title="Minimize">—</button></div></header>
+              <main class="real-ai-content" data-assistant-content>
+                <div class="real-ai-welcome"><span>✦</span><div><strong>How can I help?</strong><p>Ask about this page or select a specific element.</p></div></div>
+              </main>
+              <form class="real-ai-composer" data-assistant-composer>
+                <div class="real-selection-chip" data-selection-chip hidden><span>◎ <b data-selection-chip-label></b></span><button type="button" data-clear-selection aria-label="Clear selection">×</button></div>
+                <textarea rows="2" placeholder="Ask your question…" aria-label="Ask your question"></textarea>
+                <div><button class="real-ai-select" type="button" data-start-selection>◎ Select element</button><button class="real-ai-send" type="submit" aria-label="Send">➤</button></div>
+              </form>
+            </aside>
+          </div>
+          </div>
+
+          <div class="demo-notes" aria-label="About this demo">
+            <p><i></i><strong>Real interactions.</strong> Launcher, selection and assistant states follow the library.</p>
+            <p><i></i><strong>Fictional data.</strong> The example contains no customer or business information.</p>
+            <p><i></i><strong>Local simulation.</strong> No model, credentials or external service is contacted.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="bottom-cta compact-cta">
+        <p class="eyebrow">Ready to use it?</p><h2>Add the assistant<br />to your application.</h2><div><a class="button" href="./integrations.html#get-started">See how to install it <span>→</span></a></div>
+      </section>
+    </main>
+
+    <footer class="site-footer"><p>MIT licensed</p><div><a href="./index.html">Overview</a><a href="./integrations.html">Integrations</a><a href="https://github.com/123toto/ai-app-assistant">GitHub ↗</a></div></footer>
+    <script src="./demo.js"></script>
+  </body>
+</html>

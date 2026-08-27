@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Understand AI App Assistant's framework-neutral core, shipped connectors and full integration path." />
+    <meta name="theme-color" content="#080d19" />
+    <link rel="canonical" href="https://123toto.github.io/ai-app-assistant/integrations.html" />
+    <meta property="og:title" content="AI App Assistant integrations" />
+    <meta property="og:description" content="Framework-neutral core, existing connectors and an end-to-end setup guide." />
+    <meta property="og:image" content="https://123toto.github.io/ai-app-assistant/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AI App Assistant integrations" />
+    <meta name="twitter:description" content="Framework-neutral core, existing connectors and an end-to-end setup guide." />
+    <meta name="twitter:image" content="https://123toto.github.io/ai-app-assistant/og.png" />
+    <title>Integrations | AI App Assistant</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./index.html" aria-label="AI App Assistant home"><span class="brand-mark" aria-hidden="true"><i>✦</i><b>✦</b></span><span><strong>AI APP</strong><small>ASSISTANT</small></span></a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-navigation"><span aria-hidden="true"></span>Menu</button>
+      <nav id="site-navigation" aria-label="Main navigation"><a href="./index.html">Overview</a><a href="./demo.html">Live demo</a><a class="active" href="./integrations.html">Integrations</a><a class="nav-github" href="https://github.com/123toto/ai-app-assistant">GitHub <span>↗</span></a></nav>
+    </header>
+
+    <main>
+      <section class="page-hero integrations-hero">
+        <p class="eyebrow">Integrations</p>
+        <h1>Connect what you use.<br /><em>Extend what you need.</em></h1>
+        <p>The library provides four focused integration surfaces. Each one has useful options today and a clear path for adding your own adapter.</p>
+      </section>
+
+      <section class="integration-overview" aria-label="Available integration surfaces">
+        <article class="surface-card integration-surface-card" id="frontend">
+          <header><span class="surface-icon">⌘</span><div><small>Frontend</small><h2>Browser client</h2></div><b class="tag core">Core</b></header>
+          <p>Capture, selection, transport and conversation state without depending on a UI framework.</p>
+          <div class="ship-list">
+            <span><b class="dot native-dot"></b>Web Component <i>built in</i></span>
+            <span><b class="dot connector-dot"></b>Angular <i>connector</i></span>
+            <span><b class="dot compatible-dot"></b>React · Vue · Svelte <i>compatible</i></span>
+          </div>
+          <details class="surface-more">
+            <summary>Extension options <span class="surface-chevron" aria-hidden="true"></span></summary>
+            <p>The Web Component already works in modern frontend frameworks. A dedicated connector can add framework-native inputs, events and lifecycle handling without changing the assistant protocol or UI behavior.</p>
+          </details>
+        </article>
+
+        <article class="surface-card integration-surface-card" id="backend">
+          <header><span class="surface-icon">⇄</span><div><small>Backend and transport</small><h2>Assistant server</h2></div><b class="tag core">Core</b></header>
+          <p>Portable handlers built on web standards, with streaming and application-owned authentication.</p>
+          <div class="ship-list">
+            <span><b class="dot native-dot"></b>Fetch · Node HTTP <i>built in</i></span>
+            <span><b class="dot connector-dot"></b>Express · Nest <i>connectors</i></span>
+            <span><b class="dot compatible-dot"></b>Hono · Fastify · serverless <i>compatible</i></span>
+          </div>
+          <details class="surface-more">
+            <summary>Extension options <span class="surface-chevron" aria-hidden="true"></span></summary>
+            <p>The portable request, response and stream contracts stay stable. A backend connector only needs to translate its framework’s route and request objects, so it can be added without changing the browser client.</p>
+          </details>
+        </article>
+
+        <article class="surface-card integration-surface-card" id="intelligence">
+          <header><span class="surface-icon">✦</span><div><small>Intelligence</small><h2>Model contract</h2></div><b class="tag core">Core</b></header>
+          <p>One structured answer contract, independently of the model or inference runtime.</p>
+          <div class="ship-list">
+            <span><b class="dot connector-dot"></b>5 providers <i>adapters</i></span>
+            <span><b class="dot native-dot"></b>AI SDK model <i>injectable</i></span>
+            <span><b class="dot extension-dot"></b>AnswerGenerator <i>extension point</i></span>
+          </div>
+          <details class="surface-more">
+            <summary>Extension options <span class="surface-chevron" aria-hidden="true"></span></summary>
+            <p>OpenAI, Anthropic, Mistral, Google and Ollama adapters are included. Another provider or local inference runtime can implement the same generator contract while the UI, documents and validated answer format remain unchanged.</p>
+          </details>
+        </article>
+
+        <article class="surface-card integration-surface-card" id="knowledge">
+          <header><span class="surface-icon">≡</span><div><small>Knowledge</small><h2>Document contract</h2></div><b class="tag core">Core</b></header>
+          <p>Map trusted application knowledge into a small source contract and refresh it at runtime.</p>
+          <div class="ship-list">
+            <span><b class="dot native-dot"></b>Text · Markdown · JSON <i>built in</i></span>
+            <span><b class="dot native-dot"></b>OpenAPI objects <i>built in</i></span>
+            <span><b class="dot planned-dot"></b>Wiki · CMS · storage <i>extension ready</i></span>
+          </div>
+          <details class="surface-more">
+            <summary>Extension options <span class="surface-chevron" aria-hidden="true"></span></summary>
+            <p>A source-specific adapter can load and refresh content from a wiki, CMS, storage service or internal API. It maps that content to the same document contract while the host application keeps control of access and privacy rules.</p>
+          </details>
+        </article>
+      </section>
+
+      <section class="get-started" id="get-started" data-code-guide>
+        <div class="section-intro split-heading"><div><p class="eyebrow">End-to-end quick start</p><h2>Install. Serve.<br />Mount. Ask.</h2></div><p>The complete minimal path brings frontend and backend together. Switch steps to see where each part belongs.</p></div>
+
+        <div class="code-guide">
+          <nav aria-label="Integration steps">
+            <button class="active" type="button" data-code-tab="install"><span>01</span><strong>Install</strong><small>Two public packages</small></button>
+            <button type="button" data-code-tab="backend"><span>02</span><strong>Backend</strong><small>Model, docs and auth</small></button>
+            <button type="button" data-code-tab="frontend"><span>03</span><strong>Frontend</strong><small>Mount the assistant</small></button>
+            <button type="button" data-code-tab="custom"><span>04</span><strong>Extend</strong><small>Replace an edge</small></button>
+          </nav>
+
+          <div class="code-stage">
+            <header><div><i></i><i></i><i></i></div><small data-code-filename>terminal</small><button type="button" data-copy-code>Copy</button></header>
+            <section class="active" data-code-panel="install" data-filename="terminal">
+              <div class="code-explanation"><span>01</span><div><strong>Install the public entry points</strong><p>Contracts arrive transitively. Provider packages are already included by the server package.</p></div></div>
+              <pre><code><b>$</b> npm install \
+  @123toto/ai-app-assistant-server \
+  @123toto/ai-app-assistant-client</code></pre>
+            </section>
+            <section data-code-panel="backend" data-filename="app/api/ai-assistant/route.ts" hidden>
+              <div class="code-explanation"><span>02</span><div><strong>Create the backend boundary</strong><p>The host keeps provider keys, documents, identity and authorization.</p></div></div>
+              <pre><code><u>import</u> { createAiAppAssistantServer }
+  <u>from</u> "@123toto/ai-app-assistant-server";
+
+<u>const</u> assistant = createAiAppAssistantServer({
+  model: process.env.AI_APP_ASSISTANT_MODEL
+    ?? "mistral:mistral-small-latest",
+  documents: [
+    { id: "guide", title: "Product guide", content: guide },
+    { id: "openapi", title: "API", content: openApi }
+  ],
+  http: {
+    resolveContext: request => auth.currentUser(request),
+    authorize: user => permissions.requireAssistant(user)
+  }
+});
+
+<u>export const</u> POST = (request: Request) =>
+  assistant.fetch.handle(request);</code></pre>
+            </section>
+            <section data-code-panel="frontend" data-filename="app.ts + app.html" hidden>
+              <div class="code-explanation"><span>03</span><div><strong>Mount the built-in Web Component</strong><p>The same element works in plain HTML and inside React, Vue, Svelte or Angular.</p></div></div>
+              <pre><code><i>// app.ts</i>
+<u>import</u> "@123toto/ai-app-assistant-client/web-component";
+
+<i>&lt;!-- app.html --&gt;</i>
+&lt;ai-app-assistant
+  endpoint="/api/ai-assistant/ask"
+  stream-endpoint="/api/ai-assistant/ask/stream"
+  assistant-name="Application guide"
+&gt;&lt;/ai-app-assistant&gt;</code></pre>
+            </section>
+            <section data-code-panel="custom" data-filename="custom-model.ts" hidden>
+              <div class="code-explanation"><span>04</span><div><strong>Replace only the edge you need</strong><p>A custom model does not change the browser client, transport or answer format.</p></div></div>
+              <pre><code><u>import type</u> { AnswerGenerator }
+  <u>from</u> "@123toto/ai-app-assistant-server";
+
+<u>export const</u> generator: AnswerGenerator = {
+  modelId: "internal:assistant-model",
+  async generate(bundle, signal) {
+    return internalInference.generateStructuredAnswer(
+      bundle,
+      signal
+    );
+  }
+};</code></pre>
+            </section>
+            <footer><a href="https://github.com/123toto/ai-app-assistant/blob/main/docs/programmatic-usage.md">Open the complete programmatic guide <span>↗</span></a><span data-code-progress>Step 1 of 4</span></footer>
+          </div>
+        </div>
+      </section>
+
+      <section class="bottom-cta compact-cta"><p class="eyebrow">Missing a focused connector?</p><h2>Open a small, concrete<br />connector request.</h2><div><a class="button" href="https://github.com/123toto/ai-app-assistant/issues/new?title=Connector%20request%3A%20%5Bname%5D&amp;body=Surface%3A%0AUse%20case%3A%0AExpected%20developer%20experience%3A">Add an issue on GitHub <span>↗</span></a><a class="text-link" href="./demo.html">Try the UI first <span>→</span></a></div></section>
+    </main>
+
+    <footer class="site-footer"><p>MIT licensed</p><div><a href="./index.html">Overview</a><a href="./demo.html">Demo</a><a href="https://github.com/123toto/ai-app-assistant">GitHub ↗</a></div></footer>
+    <script src="./demo.js"></script>
+  </body>
+</html>

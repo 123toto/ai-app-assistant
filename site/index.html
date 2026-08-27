@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Add a contextual, evidence-grounded AI assistant to any web application." />
+    <meta name="theme-color" content="#080d19" />
+    <link rel="canonical" href="https://123toto.github.io/ai-app-assistant/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="AI App Assistant — contextual help for any web app" />
+    <meta property="og:description" content="Live UI context and trusted documentation, connected through a framework-neutral assistant." />
+    <meta property="og:url" content="https://123toto.github.io/ai-app-assistant/" />
+    <meta property="og:image" content="https://123toto.github.io/ai-app-assistant/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="AI App Assistant connects page, selection and documentation context to a grounded answer." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AI App Assistant — contextual help for any web app" />
+    <meta name="twitter:description" content="Live UI context and trusted documentation, connected through a framework-neutral assistant." />
+    <meta name="twitter:image" content="https://123toto.github.io/ai-app-assistant/og.png" />
+    <title>AI App Assistant — contextual help for any web app</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./index.html" aria-label="AI App Assistant home">
+        <span class="brand-mark" aria-hidden="true"><i>✦</i><b>✦</b></span>
+        <span><strong>AI APP</strong><small>ASSISTANT</small></span>
+      </a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-navigation"><span aria-hidden="true"></span>Menu</button>
+      <nav id="site-navigation" aria-label="Main navigation">
+        <a class="active" href="./index.html">Overview</a>
+        <a href="./demo.html">Live demo</a>
+        <a href="./integrations.html">Integrations</a>
+        <a class="nav-github" href="https://github.com/123toto/ai-app-assistant">GitHub <span>↗</span></a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="home-hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Open source · framework neutral</p>
+          <h1>Your app.<br /><em>Ready to answer.</em></h1>
+          <p class="hero-lead">Give any web application a contextual assistant grounded in its rendered UI, a selected element and trusted documentation.</p>
+
+          <div class="hero-install" aria-label="Install AI App Assistant packages">
+            <code><span class="install-prompt">$</span><span class="install-command-full">npm i @123toto/ai-app-assistant-server @123toto/ai-app-assistant-client</span><span class="install-command-mobile">npm i …server …client</span></code>
+            <button type="button" data-copy="npm i @123toto/ai-app-assistant-server @123toto/ai-app-assistant-client">Copy</button>
+          </div>
+
+          <div class="hero-actions">
+            <a class="button" href="./demo.html">Try the interactive demo <span>→</span></a>
+            <a class="text-link" href="./integrations.html">Open the integration guide <span>→</span></a>
+          </div>
+        </div>
+
+        <div class="hero-product" aria-label="AI App Assistant product preview">
+          <div class="product-browser">
+            <div class="product-browser-bar"><i></i><i></i><i></i><span>your-app.example / workspace</span></div>
+            <div class="product-app">
+              <aside>
+                <strong>ACME<span>DESK</span></strong>
+                <nav class="product-nav-skeleton" aria-hidden="true">
+                  <span class="active"><i></i><b></b></span>
+                  <span><i></i><b></b></span>
+                  <span><i></i><b></b></span>
+                  <small></small>
+                  <span><i></i><b></b></span>
+                </nav>
+              </aside>
+              <div class="product-content">
+                <small>Workspace</small><h2>Requests</h2>
+                <div class="product-toolbar" aria-hidden="true"><i></i><i></i><i></i></div>
+                <div class="product-stats" aria-hidden="true"><article><small></small><b></b><span></span></article><article><small></small><b></b><span></span></article><article><small></small><b></b><span></span></article></div>
+                <div class="product-table" aria-hidden="true"><div><i></i><span></span><b></b></div><div><i></i><span></span><b></b></div><div><i></i><span></span><b></b></div><div><i></i><span></span><b></b></div></div>
+              </div>
+              <div class="product-assistant">
+                <header><span class="spark-avatar">✦</span><div><strong>AI guide</strong><small>Help about this page</small></div><b>—</b></header>
+                <main>
+                  <div class="selection-event"><span>✦</span><div><small>Selected element</small><strong>Request #1048</strong></div></div>
+                  <div class="question-preview">Why is this request blocked?</div>
+                  <div class="answer-preview"><h3>Approval is waiting</h3><p>One required check is still incomplete.</p><footer><i></i> Reliability: 92%</footer></div>
+                </main>
+                <footer><div>◎ Request #1048 <span>×</span></div><p>Ask your question…</p><button>◎ Select element</button><b>➤</b></footer>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="context-feature-card" aria-label="Assistant context flow">
+        <div class="section-intro split-heading">
+          <div><p class="eyebrow">How answers stay relevant</p><h2>Useful context in.<br />Grounded help out.</h2></div>
+          <p>The assistant combines what the user sees, what they point to and the trusted knowledge supplied by the application.</p>
+        </div>
+        <div class="context-strip">
+          <div class="context-sources">
+            <div class="context-item"><i>▤</i><strong>Rendered page</strong><small>Live browser context</small></div>
+            <div class="context-item"><i>◎</i><strong>Selected element</strong><small>User-focused context</small></div>
+            <div class="context-item"><i>≡</i><strong>Trusted documents</strong><small>Guides, JSON, OpenAPI</small></div>
+          </div>
+          <div class="context-merge" aria-hidden="true"><span>→</span></div>
+          <div class="context-item context-result"><i>✦</i><strong>Grounded answer</strong><small>Backed by the page and trusted sources</small></div>
+        </div>
+      </section>
+
+      <section class="overview-feature-card" id="what-ships">
+        <div class="section-intro split-heading">
+          <div><p class="eyebrow">Library structure</p><h2>Four parts.<br />One assistant.</h2></div>
+          <p>Each part has a clear role and can evolve independently. Use the included options today, then add a focused adapter where your application needs one.</p>
+        </div>
+
+        <article class="overview-parts">
+          <div><span class="surface-icon">⌘</span><p><strong>Browser client</strong><small>Captures the rendered page, selection and conversation state.</small></p></div>
+          <div><span class="surface-icon">⇄</span><p><strong>Assistant server</strong><small>Connects application context, documents and streaming responses.</small></p></div>
+          <div><span class="surface-icon">✦</span><p><strong>Model contract</strong><small>Keeps the answer format independent from the chosen model.</small></p></div>
+          <div><span class="surface-icon">≡</span><p><strong>Document contract</strong><small>Turns trusted application knowledge into reusable sources.</small></p></div>
+          <a class="text-link" href="./integrations.html">Explore integrations and extensions <span>→</span></a>
+        </article>
+      </section>
+
+      <section class="demo-cta">
+        <div>
+          <p class="eyebrow">A faithful, zero-cost simulation</p>
+          <h2>Try the real<br />interaction flow.</h2>
+          <p>The demo reproduces the library’s launcher, element picker, selection event, streaming phases, structured answer and confidence display—without calling an LLM.</p>
+          <a class="button" href="./demo.html">Launch the guided demo <span>→</span></a>
+        </div>
+        <ol>
+          <li><span>01</span><div><strong>Open the assistant</strong><small>The real sparkling launcher expands into the panel.</small></div></li>
+          <li><span>02</span><div><strong>Select a UI element</strong><small>The panel hides while the picker focuses the page.</small></div></li>
+          <li><span>03</span><div><strong>Ask in context</strong><small>The selection, page and documents support the answer.</small></div></li>
+          <li><span>04</span><div><strong>Check reliability</strong><small>Structured output shows confidence and limitations.</small></div></li>
+        </ol>
+      </section>
+
+      <section class="security-section">
+        <div><p class="eyebrow">Privacy controlled by your app</p><h2>Your context stays under your control.</h2></div>
+        <div class="security-points">
+          <p><span>✓</span> Your application chooses which page areas are shared or excluded.</p>
+          <p><span>✓</span> Form values and marked sensitive areas are excluded by default.</p>
+          <p><span>✓</span> Identity, permissions and privacy rules remain application controlled.</p>
+          <p><span>✓</span> Answers are structured, validated and linked to retained evidence.</p>
+        </div>
+      </section>
+
+      <section class="bottom-cta">
+        <span class="brand-mark" aria-hidden="true"><i>✦</i><b>✦</b></span>
+        <p class="eyebrow">Two packages. One boundary.</p>
+        <h2>Add context-aware help<br />without rebuilding your app.</h2>
+        <div><a class="button" href="./integrations.html#get-started">Start the integration <span>→</span></a><a class="text-link" href="https://github.com/123toto/ai-app-assistant">Browse the source <span>↗</span></a></div>
+      </section>
+    </main>
+
+    <footer class="site-footer"><p>MIT licensed</p><div><a href="./demo.html">Demo</a><a href="./integrations.html">Integrations</a><a href="https://github.com/123toto/ai-app-assistant">GitHub ↗</a></div></footer>
+
+    <script src="./demo.js"></script>
+  </body>
+</html>
