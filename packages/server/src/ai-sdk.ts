@@ -1,5 +1,4 @@
 import { Output, generateText, streamText, type LanguageModel } from "ai";
-import { z } from "zod";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createMistral } from "@ai-sdk/mistral";
@@ -212,8 +211,9 @@ function normalizeCompleteAnswer(answer: GeneratedAnswer): GeneratedAnswer {
 }
 
 /**
- * Makes one deliberately small structured-output call to validate credentials,
- * model access and the capability required by the assistant.
+ * Makes one deliberately small text call to validate credentials and model
+ * access. Structured output is exercised by real assistant generations; using
+ * it as a health check can create provider-specific false negatives.
  */
 export async function testAiSdkConnection(
   options: AiSdkConnectionTestOptions
@@ -225,20 +225,14 @@ export async function testAiSdkConnection(
 
   try {
     const resolved = resolveModel(options);
-    const result = await generateText({
+    await generateText({
       model: resolved.model,
       maxRetries: 0,
-      maxOutputTokens: 32,
-      timeout: clampInteger(options.timeoutMs ?? 15_000, 1_000, 30_000),
-      system: "Return the requested connectivity result as structured data.",
-      prompt: "Return status ok.",
-      output: Output.object({
-        schema: z.object({ status: z.literal("ok") })
-      })
+      maxOutputTokens: 8,
+      timeout: clampInteger(options.timeoutMs ?? 15_000, 1_000, 120_000),
+      system: "This is a connectivity check. Reply briefly.",
+      prompt: "Reply with OK."
     });
-    if (result.output.status !== "ok") {
-      throw new Error("The model returned an invalid connectivity result");
-    }
     return {
       success: true,
       model: displayModel,

@@ -112,7 +112,14 @@ export function createAiAppAssistantClient(options: AiAppAssistantClientOptions)
       for await (const rawEvent of events) {
         const event = aiAppAssistantTransportEventSchema.parse(rawEvent);
         callOptions?.onEvent?.(event);
-        if (event.type === "error") throw new Error(event.message);
+        if (event.type === "error") {
+          throw new AiAppAssistantStreamError(
+            event.message,
+            event.retryable,
+            event.code,
+            event.requestId
+          );
+        }
         if (event.type === "complete") response = event.response;
       }
 
@@ -177,5 +184,18 @@ export class AiAppAssistantHttpError extends Error {
   ) {
     super(`AI docs request failed with status ${status}.`);
     this.name = "AiAppAssistantHttpError";
+  }
+}
+
+/** Safe structured failure emitted by the progressive server transport. */
+export class AiAppAssistantStreamError extends Error {
+  public constructor(
+    message: string,
+    readonly retryable: boolean,
+    readonly code?: string,
+    readonly requestId?: string
+  ) {
+    super(message);
+    this.name = "AiAppAssistantStreamError";
   }
 }

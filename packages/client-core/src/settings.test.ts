@@ -55,6 +55,45 @@ describe("AiAppAssistantSettingsController", () => {
     expect(controller.snapshot.options).toEqual({ roles: [], users: [] });
     expect(controller.snapshot.optionsAvailable).toBe(false);
   });
+
+  it("refreshes a stale connected badge after a failed active connection test", async () => {
+    const connected = configuration();
+    const disconnected = {
+      ...connected,
+      connection: { status: "disconnected" as const, model: "ollama:qwen3" }
+    };
+    const getConfiguration = vi.fn()
+      .mockResolvedValueOnce(connected)
+      .mockResolvedValueOnce(disconnected);
+    const controller = new AiAppAssistantSettingsController({
+      getAccess: async () => ({ available: true, maxConversationTurns: 3 }),
+      getConfiguration,
+      listProviders: async () => [{
+        id: "ollama", label: "Ollama", requiresApiKey: false, supportsModelDiscovery: true
+      }],
+      getOptions: async () => ({ roles: [], users: [] }),
+      listModels: async () => [],
+      testConnection: async () => ({
+        success: false,
+        model: "ollama:qwen3",
+        latencyMs: 45_000,
+        error: { code: "TIMEOUT", message: "Timed out", retryable: true }
+      }),
+      save: async () => ({
+        saved: true,
+        connection: { success: true, model: "ollama:qwen3", latencyMs: 1 },
+        configuration: connected
+      }),
+      revokeApiKey: async () => connected
+    });
+
+    await controller.initialize();
+    await controller.test({ provider: "ollama", model: "qwen3" });
+
+    expect(getConfiguration).toHaveBeenCalledTimes(2);
+    expect(controller.snapshot.configuration?.connection.status).toBe("disconnected");
+    expect(controller.snapshot.connectionTest).toMatchObject({ success: false });
+  });
 });
 
 function configuration() {

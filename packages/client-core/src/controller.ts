@@ -154,7 +154,7 @@ export class AiAppAssistantController {
       }
       this.#state = normalized.name === "AbortError"
         ? { status: "idle" }
-        : { status: "error", error: normalized, canRetry: true };
+        : { status: "error", error: normalized, canRetry: isRetryableAiAppAssistantError(error) };
       this.notify();
       throw normalized;
     } finally {
@@ -339,6 +339,41 @@ export function normalizeAiAppAssistantError(error: unknown): Error {
     ?? extractErrorMessage(responseBody)
     ?? (error instanceof Error && error.message !== "[object Object]" ? error.message : undefined);
   return new Error(message ?? "The assistant request failed. Please try again.");
+}
+
+/** Decides whether replaying the same user request can reasonably succeed. */
+export function isRetryableAiAppAssistantError(error: unknown): boolean {
+  if (error && typeof error === "object" && "retryable" in error
+    && typeof (error as { retryable?: unknown }).retryable === "boolean") {
+    return (error as { retryable: boolean }).retryable;
+  }
+  if (error && typeof error === "object" && "status" in error
+    && typeof (error as { status?: unknown }).status === "number") {
+    const status = (error as { status: number }).status;
+    const responseBody = "responseBody" in error
+      ? (error as { responseBody?: unknown }).responseBody
+      : undefined;
+    const code = extractErrorCode(responseBody);
+    if (["assistant_disabled", "forbidden", "invalid_request", "not_configured", "quota_reached",
+      "secret_storage_unavailable", "unauthorized"].includes(code ?? "")) return false;
+    return status === 408 || status >= 500;
+  }
+  return !(error instanceof DOMException && error.name === "AbortError");
+}
+
+function extractErrorCode(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!parsed || typeof parsed !== "object") return undefined;
+    const record = parsed as Record<string, unknown>;
+    if (typeof record["error"] === "string") return record["error"];
+    if (record["error"] && typeof record["error"] === "object") {
+      const nested = record["error"] as Record<string, unknown>;
+      return typeof nested["code"] === "string" ? nested["code"] : undefined;
+    }
+  } catch { /* A plain-text response has no stable error code. */ }
+  return undefined;
 }
 
 /** Reads common HTTP envelopes without dumping technical JSON into the chat. */

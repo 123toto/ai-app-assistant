@@ -103,6 +103,14 @@ export interface AiAppAssistantSettingsSnapshot {
 
 export type AiAppAssistantSettingsListener = (snapshot: AiAppAssistantSettingsSnapshot) => void;
 
+function modelDiscoverySignature(input: AiAppAssistantCredentials): string {
+  return JSON.stringify([
+    input.provider,
+    input.apiKey?.trim() ?? "",
+    input.baseURL?.trim().replace(/\/+$/, "") ?? ""
+  ]);
+}
+
 /** Reusable state controller for Angular, React, Vue or a custom settings page. */
 export class AiAppAssistantSettingsController {
   #snapshot: AiAppAssistantSettingsSnapshot = {
@@ -113,6 +121,7 @@ export class AiAppAssistantSettingsController {
     optionsAvailable: false
   };
   readonly #listeners = new Set<AiAppAssistantSettingsListener>();
+  #modelsLoadedFor: string | undefined;
 
   public constructor(readonly client: AiAppAssistantSettingsClient) {}
 
@@ -164,6 +173,7 @@ export class AiAppAssistantSettingsController {
     this.update({ status: "loading-models", error: undefined });
     try {
       const models = await this.client.listModels(input);
+      this.#modelsLoadedFor = modelDiscoverySignature(input);
       this.update({ status: "ready", models, error: undefined });
       return models;
     } catch (error) {
@@ -171,12 +181,27 @@ export class AiAppAssistantSettingsController {
     }
   }
 
+  /** True after model discovery succeeded for these exact provider credentials. */
+  public modelsAreLoadedFor(input: AiAppAssistantCredentials): boolean {
+    return this.#modelsLoadedFor !== undefined && this.#modelsLoadedFor === modelDiscoverySignature(input);
+  }
+
   /** Tests a draft connection without persisting it. */
   public async test(input: AiAppAssistantConnectionTestInput): Promise<AiAppAssistantConnectionResult> {
     this.update({ status: "testing", error: undefined });
     try {
       const connectionTest = await this.client.testConnection(input);
-      this.update({ status: "ready", connectionTest, error: undefined });
+      // The server updates the effective runtime status when the tested draft
+      // matches the active connection. Refresh it so the badge cannot keep a
+      // stale "Connected" state after a failed inference test.
+      const configuration = await this.client.getConfiguration()
+        .catch(() => this.#snapshot.configuration);
+      this.update({
+        status: "ready",
+        ...(configuration ? { configuration } : {}),
+        connectionTest,
+        error: undefined
+      });
       return connectionTest;
     } catch (error) {
       throw this.fail(error);
@@ -205,6 +230,7 @@ export class AiAppAssistantSettingsController {
     this.update({ status: "saving", error: undefined });
     try {
       const configuration = await this.client.revokeApiKey();
+      this.#modelsLoadedFor = undefined;
       this.update({ status: "ready", configuration, models: [], error: undefined });
     } catch (error) {
       throw this.fail(error);

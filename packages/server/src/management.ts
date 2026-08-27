@@ -219,7 +219,7 @@ export class AiAppAssistantConfigurationManager {
           model: `${input.provider}:${input.model}`,
           ...(apiKey ? { apiKey } : {}),
           ...(input.baseURL ? { baseURL: input.baseURL } : {}),
-          timeoutMs: Math.min(this.#options.connectionTimeoutMs ?? 15_000, 30_000)
+          timeoutMs: this.#options.connectionTimeoutMs ?? 15_000
         });
     if (connection.success) {
       this.#recentConnectionValidation = {
@@ -267,14 +267,18 @@ export class AiAppAssistantConfigurationManager {
           model: `${configuration.provider}:${configuration.model}`,
           ...(configuration.apiKey ? { apiKey: configuration.apiKey } : {}),
           ...(configuration.baseURL ? { baseURL: configuration.baseURL } : {}),
-          timeoutMs: Math.min(this.#options.connectionTimeoutMs ?? 15_000, 30_000)
+          timeoutMs: this.#options.connectionTimeoutMs ?? 15_000
         }));
     this.#runtimeConnection = {
       status: result.success ? "connected" : "disconnected",
       checkedAt: this.now(),
       model: result.model
     };
-    if (!result.success) this.#options.logger?.warn(`AI assistant connection failed: ${result.error.code}`);
+    if (!result.success) {
+      this.#options.logger?.warn(
+        `AI assistant connection failed: ${result.error.code}: ${result.error.message}`
+      );
+    }
     return result.success;
   }
 
@@ -604,25 +608,26 @@ export class AiAppAssistantConfigurationManager {
   public async ensureRuntimeConnection(): Promise<boolean> {
     if (!this.isEnabled()) return false;
     if (this.#runtimeConnection.status === "connected") return true;
+    // Concurrent callers share the active check instead of failing fast or
+    // launching a second provider request during the reconnect interval.
+    if (this.#reconnectPromise) return this.#reconnectPromise;
     const intervalMs = Math.max(1_000, this.#options.reconnectIntervalMs ?? 30_000);
     if (Date.now() - this.#lastReconnectAttempt < intervalMs) return false;
-    if (!this.#reconnectPromise) {
-      this.#reconnectPromise = this.validateRuntimeConnection()
-        .then(async (connected) => {
-          if (connected) {
-            await this.publishAndEmit({
-              reason: "connection-tested",
-              reloadRequired: true,
-              connectionValidated: true,
-              remote: false
-            });
-          }
-          return connected;
-        })
-        .finally(() => {
-          this.#reconnectPromise = undefined;
-        });
-    }
+    this.#reconnectPromise = this.validateRuntimeConnection()
+      .then(async (connected) => {
+        if (connected) {
+          await this.publishAndEmit({
+            reason: "connection-tested",
+            reloadRequired: true,
+            connectionValidated: true,
+            remote: false
+          });
+        }
+        return connected;
+      })
+      .finally(() => {
+        this.#reconnectPromise = undefined;
+      });
     return this.#reconnectPromise;
   }
 

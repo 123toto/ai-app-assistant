@@ -157,7 +157,7 @@ export class AiAppAssistantElement extends HTMLElementBase {
       ? `<article class="message assistant"><div class="progress"><i></i><i></i><i></i><span>${labels[state.phase]}</span></div>${state.partialText ? `<p>${escapeHtml(state.partialText)}</p>` : ""}</article>`
       : "";
     const error = state.status === "error"
-      ? `<div class="error"><strong>${labels.error}</strong><span>${escapeHtml(state.error.message)}</span><button data-action="retry">${labels.retry}</button></div>`
+      ? `<div class="error"><strong>${labels.error}</strong><span>${escapeHtml(state.error.message)}</span>${state.canRetry ? `<button data-action="retry">${labels.retry}</button>` : ""}</div>`
       : "";
     return messages || progress || error
       ? `${messages}${progress}${error}`

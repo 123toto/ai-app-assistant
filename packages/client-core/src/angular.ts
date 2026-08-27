@@ -319,6 +319,9 @@ export class AiAppAssistantSettingsService {
     const element = document.createElement("ai-app-assistant-settings") as AiAppAssistantSettingsElement;
     const settingsTheme = compactTheme({
       accent: this.config.theme?.accent,
+      accentContrast: this.config.theme?.accentContrast,
+      header: this.config.theme?.header,
+      headerText: this.config.theme?.headerText,
       surface: this.config.theme?.surface,
       surfaceMuted: this.config.theme?.surfaceMuted,
       text: this.config.theme?.text,
@@ -418,7 +421,7 @@ export class AiAppAssistantSettingsService {
                 @if (state.retry) { <small>{{ labels().retrying }} {{ state.retry.attempt }}/{{ state.retry.maxRetries }}…</small> }
               </article>
             } @else if (state.status === 'error') {
-              <div class="ai-error"><strong>{{ labels().errorTitle }}</strong><span>{{ state.error.message }}</span><button type="button" (click)="retry()">{{ labels().retry }}</button></div>
+              <div class="ai-error"><strong>{{ labels().errorTitle }}</strong><span>{{ state.error.message }}</span>@if (state.canRetry) { <button type="button" (click)="retry()">{{ labels().retry }}</button> }</div>
             }
           }
         </main>

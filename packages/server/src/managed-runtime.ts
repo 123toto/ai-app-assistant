@@ -152,13 +152,15 @@ export function createManagedAiAppAssistantRuntime<TIdentity extends AiAppAssist
   return {
     configuration: options.configuration,
     ...(options.telemetryStore ? { telemetry: options.telemetryStore } : {}),
-    /** Starts cross-instance synchronization and validates the active provider once. */
+    /**
+     * Starts synchronization immediately, then validates the optional provider
+     * in the background so an unavailable LLM never delays the host bootstrap.
+     */
     async initialize() {
       if (initialized) return;
       initialized = true;
       await options.configuration.startSynchronization();
-      const connected = await options.configuration.validateRuntimeConnection();
-      await rebuild({ connectionValidated: connected });
+      void options.configuration.ensureRuntimeConnection().catch(() => undefined);
     },
     dispose() {
       initialized = false;

@@ -364,9 +364,9 @@ describe("createAiSdkGenerator", () => {
     expect(generator.modelId).toBe("ai-sdk:custom-provider:custom-model");
   });
 
-  it("tests a model with one minimal structured-output request", async () => {
+  it("tests a model with one minimal text request", async () => {
     mocks.mistralFactory.mockReturnValue({ provider: "mistral", modelId: "small" });
-    mocks.generateText.mockResolvedValueOnce({ output: { status: "ok" } });
+    mocks.generateText.mockResolvedValueOnce({ text: "OK" });
 
     await expect(testAiSdkConnection({
       model: "mistral:small",
@@ -377,8 +377,9 @@ describe("createAiSdkGenerator", () => {
     });
     expect(mocks.generateText).toHaveBeenLastCalledWith(expect.objectContaining({
       maxRetries: 0,
-      maxOutputTokens: 32
+      maxOutputTokens: 8
     }));
+    expect(mocks.generateText.mock.lastCall?.[0]).not.toHaveProperty("output");
   });
 
   it("returns a safe connection failure instead of throwing", async () => {

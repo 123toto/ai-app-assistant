@@ -104,6 +104,38 @@ describe("AiAppAssistantConfigurationManager", () => {
     expect(listModels).not.toHaveBeenCalled();
   });
 
+  it("shares one pending provider validation between concurrent callers", async () => {
+    let finishValidation: ((result: {
+      success: true;
+      model: string;
+      latencyMs: number;
+    }) => void) | undefined;
+    const pendingValidation = new Promise<{
+      success: true;
+      model: string;
+      latencyMs: number;
+    }>((resolve) => {
+      finishValidation = resolve;
+    });
+    const testConnection = vi.fn(() => pendingValidation);
+    const manager = createManager({
+      defaultConfiguration: {
+        provider: "ollama",
+        model: "qwen3",
+        access: { mode: "all" }
+      },
+      testConnection
+    });
+
+    const first = manager.ensureRuntimeConnection();
+    const second = manager.ensureRuntimeConnection();
+
+    await vi.waitFor(() => expect(testConnection).toHaveBeenCalledOnce());
+    finishValidation?.({ success: true, model: "ollama:qwen3", latencyMs: 1 });
+    await expect(Promise.all([first, second])).resolves.toEqual([true, true]);
+    expect(testConnection).toHaveBeenCalledOnce();
+  });
+
   it("keeps deployment connection fields automatic when only policies are saved", async () => {
     const manager = createManager({
       defaultConfiguration: {

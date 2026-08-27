@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { AiAppAssistantHttpError } from "./client.js";
-import { normalizeAiAppAssistantError } from "./controller.js";
+import {
+  isRetryableAiAppAssistantError,
+  normalizeAiAppAssistantError
+} from "./controller.js";
 
 describe("normalizeAiAppAssistantError", () => {
   it("extracts a useful message from nested HTTP JSON", () => {
@@ -15,5 +18,26 @@ describe("normalizeAiAppAssistantError", () => {
       .toBe("The assistant request failed. Please try again.");
     const cancelled = new DOMException("Stopped", "AbortError");
     expect(normalizeAiAppAssistantError(cancelled)).toBe(cancelled);
+  });
+
+  it("does not retry quota, authorization or configuration failures", () => {
+    for (const [status, error] of [
+      [429, "quota_reached"],
+      [403, "forbidden"],
+      [503, "not_configured"]
+    ] as const) {
+      expect(isRetryableAiAppAssistantError(new AiAppAssistantHttpError(
+        status,
+        JSON.stringify({ error, message: "Unavailable" })
+      ))).toBe(false);
+    }
+  });
+
+  it("keeps retry available for transient provider and transport failures", () => {
+    expect(isRetryableAiAppAssistantError({ retryable: true })).toBe(true);
+    expect(isRetryableAiAppAssistantError(new AiAppAssistantHttpError(
+      502,
+      JSON.stringify({ error: "assistant_error" })
+    ))).toBe(true);
   });
 });

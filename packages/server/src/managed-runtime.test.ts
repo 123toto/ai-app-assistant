@@ -11,6 +11,43 @@ import { createMemoryAiAppAssistantTelemetryStore } from "./telemetry.js";
 const actor = { id: "user", label: "User" };
 
 describe("createManagedAiAppAssistantRuntime", () => {
+  it("does not delay host initialization while provider validation is pending", async () => {
+    const repository = createAiAppAssistantConfigurationRepository({
+      store: createMemoryAiAppAssistantStore(),
+      secretProtector: { protect: String, unprotect: String }
+    });
+    let finishValidation: ((result: {
+      success: true;
+      model: string;
+      latencyMs: number;
+    }) => void) | undefined;
+    const connection = new Promise<{
+      success: true;
+      model: string;
+      latencyMs: number;
+    }>((resolve) => {
+      finishValidation = resolve;
+    });
+    const configuration = new AiAppAssistantConfigurationManager({
+      repository,
+      defaultConfiguration: {
+        provider: "ollama",
+        model: "qwen3",
+        access: { mode: "all" }
+      },
+      testConnection: () => connection
+    });
+    const createGenerator = vi.fn(({ model }: { model: string }) => generator(model));
+    const runtime = createManagedAiAppAssistantRuntime({ configuration, createGenerator });
+
+    await expect(runtime.initialize()).resolves.toBeUndefined();
+    expect(createGenerator).not.toHaveBeenCalled();
+
+    finishValidation?.({ success: true, model: "ollama:qwen3", latencyMs: 1 });
+    await vi.waitFor(() => expect(createGenerator).toHaveBeenCalledOnce());
+    runtime.dispose();
+  });
+
   it("initializes and automatically rebuilds after a connection change", async () => {
     const repository = createAiAppAssistantConfigurationRepository({
       store: createMemoryAiAppAssistantStore(),
