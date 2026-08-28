@@ -215,7 +215,9 @@ export class AiAppAssistantSettingsElement extends HTMLElementBase {
     configuration: AiAppAssistantManagedConfigurationView
   ): void {
     const busy = !["idle", "ready", "error"].includes(snapshot.status);
-    const settingsLocked = !configuration.apiKeyStorageAvailable && !configuration.configured;
+    const hostManagedConnection = isHostManagedConnection(snapshot, configuration.provider ?? "");
+    const settingsLocked = !configuration.configured
+      && (hostManagedConnection || !configuration.apiKeyStorageAvailable);
     for (const fieldset of this.#root.querySelectorAll<HTMLFieldSetElement>("fieldset")) {
       // Disabling a fieldset can make browsers clear password inputs. Keep the
       // draft controls mounted and usable; action buttons are locked below.
@@ -278,8 +280,12 @@ export class AiAppAssistantSettingsElement extends HTMLElementBase {
     busy: boolean
   ): string {
     const draft = this.#draft ?? draftFrom(configuration);
-    const selectedProviderLabel = snapshot.providers.find(({ id }) => id === draft.provider)?.label ?? "Select…";
-    const providerOptions = snapshot.providers.map((provider) =>
+    const selectedProvider = snapshot.providers.find(({ id }) => id === draft.provider);
+    const selectedProviderLabel = selectedProvider?.label ?? "Select…";
+    const hostManagedConnection = isHostManagedConnection(snapshot, draft.provider);
+    const providerOptions = snapshot.providers
+      .filter((provider) => provider.connectionManagement !== "host")
+      .map((provider) =>
       `<button type="button" class="dropdown-option ${provider.id === draft.provider ? "active" : ""}" role="option" aria-selected="${provider.id === draft.provider}" data-action="select-provider" data-value="${escapeHtml(provider.id)}">${escapeHtml(provider.label)}</button>`
     ).join("");
     const modelOptions = snapshot.models.map((model, index) => `<button type="button" id="ai-app-assistant-model-option-${index}" class="model-option" role="option" data-action="select-model" data-value="${escapeHtml(model.id)}">${escapeHtml(model.label ?? model.id)}</button>`).join("");
@@ -288,16 +294,20 @@ export class AiAppAssistantSettingsElement extends HTMLElementBase {
       `<button type="button" class="dropdown-option ${value === draft.accessMode ? "active" : ""}" role="option" aria-selected="${value === draft.accessMode}" data-action="select-access" data-value="${value}">${label}</button>`
     ).join("");
     const secureStorageAvailable = configuration.apiKeyStorageAvailable;
-    const settingsLocked = !secureStorageAvailable && !configuration.configured;
-    const defaultConnectionOnly = !secureStorageAvailable && configuration.configured;
-    const storageOnly = secureStorageAvailable && !configuration.configured;
+    const settingsLocked = !configuration.configured && (hostManagedConnection || !secureStorageAvailable);
+    const defaultConnectionOnly = !hostManagedConnection && !secureStorageAvailable && configuration.configured;
+    const storageOnly = !hostManagedConnection && secureStorageAvailable && !configuration.configured;
     const credentialsDisabled = !configuration.canManageCredentials || !secureStorageAvailable;
     const modelDisabled = !configuration.canChangeModel;
     const formDisabled = busy || settingsLocked;
     const actions = connectionActions(snapshot, configuration, draft, busy);
-    const setupState = settingsLocked ? "missing-all" : defaultConnectionOnly ? "default-only" : storageOnly ? "storage-only" : "ready";
-    const setupNotice = settingsLocked
-      ? '<p class="setup-notice warning" role="alert">A secure encryption key and a default connection are missing. The assistant settings are unavailable until an administrator completes the setup.</p>'
+    const setupState = hostManagedConnection ? "host-managed" : settingsLocked ? "missing-all" : defaultConnectionOnly ? "default-only" : storageOnly ? "storage-only" : "ready";
+    const setupNotice = hostManagedConnection
+      ? configuration.configured
+        ? '<p class="setup-notice info">Connection and authentication are managed by the host application. Model and usage policies remain available here.</p>'
+        : '<p class="setup-notice warning" role="alert">The host application has not configured this connection yet.</p>'
+      : settingsLocked
+        ? '<p class="setup-notice warning" role="alert">A secure encryption key and a default connection are missing. The assistant settings are unavailable until an administrator completes the setup.</p>'
       : defaultConnectionOnly
         ? '<p class="setup-notice info">The default connection is active. A secure encryption key is required only to add or replace the API key from this screen.</p>'
         : storageOnly
@@ -318,10 +328,12 @@ export class AiAppAssistantSettingsElement extends HTMLElementBase {
       <fieldset class="connection-settings" ${formDisabled ? "disabled" : ""}><legend>Connection</legend>
         ${setupNotice}
         ${connectionError}
-        <div class="field" data-validation-field="provider"><span class="field-label">Provider</span><div class="simple-dropdown" data-dropdown="provider"><input class="dropdown-value" name="provider" value="${escapeHtml(draft.provider)}" aria-hidden="true" tabindex="-1" ${credentialsDisabled ? "disabled" : ""}><button type="button" class="dropdown-trigger" data-action="toggle-provider" aria-haspopup="listbox" aria-expanded="false" aria-controls="ai-app-assistant-provider-options" ${credentialsDisabled ? "disabled" : ""}><span data-dropdown-label>${escapeHtml(selectedProviderLabel)}</span><span class="dropdown-chevron" aria-hidden="true">⌄</span></button><div id="ai-app-assistant-provider-options" class="dropdown-options" role="listbox" hidden>${providerOptions}</div></div></div>
-        <label data-validation-field="apiKey">API key<input name="apiKey" type="password" autocomplete="new-password" placeholder="${configuration.apiKeyConfigured ? "Already provided — enter a new key to replace it" : "Enter API key"}" ${credentialsDisabled ? "disabled" : ""}></label>
+        ${hostManagedConnection
+          ? `<div class="field" data-validation-field="provider"><span class="field-label">Provider</span><output class="managed-value">${escapeHtml(selectedProviderLabel)}</output><input type="hidden" name="provider" value="${escapeHtml(draft.provider)}"></div>`
+          : `<div class="field" data-validation-field="provider"><span class="field-label">Provider</span><div class="simple-dropdown" data-dropdown="provider"><input class="dropdown-value" name="provider" value="${escapeHtml(draft.provider)}" aria-hidden="true" tabindex="-1" ${credentialsDisabled ? "disabled" : ""}><button type="button" class="dropdown-trigger" data-action="toggle-provider" aria-haspopup="listbox" aria-expanded="false" aria-controls="ai-app-assistant-provider-options" ${credentialsDisabled ? "disabled" : ""}><span data-dropdown-label>${escapeHtml(selectedProviderLabel)}</span><span class="dropdown-chevron" aria-hidden="true">⌄</span></button><div id="ai-app-assistant-provider-options" class="dropdown-options" role="listbox" hidden>${providerOptions}</div></div></div>`}
+        ${hostManagedConnection ? "" : `<label data-validation-field="apiKey">API key<input name="apiKey" type="password" autocomplete="new-password" placeholder="${configuration.apiKeyConfigured ? "Already provided — enter a new key to replace it" : "Enter API key"}" ${credentialsDisabled ? "disabled" : ""}></label>`}
         <div class="field" data-validation-field="model"><span id="ai-app-assistant-model-label" class="field-label">Model</span><div class="model-control"><div class="model-combobox"><input name="model" value="${escapeHtml(draft.model)}" autocomplete="off" role="combobox" aria-labelledby="ai-app-assistant-model-label" aria-autocomplete="list" aria-expanded="false" aria-controls="ai-app-assistant-model-options" ${modelDisabled ? "disabled" : ""}><div id="ai-app-assistant-model-options" class="model-options" role="listbox" hidden>${modelOptions}<div class="model-empty" hidden>No matching models</div></div></div><button type="button" class="model-refresh" data-action="models" aria-label="Refresh models" ${actions.canLoadModels ? "" : "disabled"} ${actions.loadModelsHint ? `title="${escapeHtml(actions.loadModelsHint)}"` : ""}><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-15.2-6.5L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 15.2 6.5L21 16"></path><path d="M16 16h5v5"></path></svg></button></div></div>
-        <label>Base URL (optional)<input name="baseURL" type="url" value="${escapeHtml(draft.baseURL)}" placeholder="https://…" ${credentialsDisabled ? "disabled" : ""}></label>
+        ${hostManagedConnection ? "" : `<label>Base URL (optional)<input name="baseURL" type="url" value="${escapeHtml(draft.baseURL)}" placeholder="https://…" ${credentialsDisabled ? "disabled" : ""}></label>`}
         <div class="connection-actions"><button type="button" data-action="test" ${actions.canTestConnection ? "" : "disabled"} ${actions.testConnectionHint ? `title="${escapeHtml(actions.testConnectionHint)}"` : ""}>Test connection</button>${snapshot.connectionTest ? `<small class="test ${snapshot.connectionTest.success ? "ok" : "ko"}">${snapshot.connectionTest.success ? '<span class="test-success-icon" aria-hidden="true">✓</span><span>Connection successful</span>' : escapeHtml(snapshot.connectionTest.error.message)}</small>` : ""}</div>
       </fieldset>
       <fieldset class="usage-settings" ${formDisabled ? "disabled" : ""}><legend>Usage</legend>
@@ -771,7 +783,9 @@ export class AiAppAssistantSettingsElement extends HTMLElementBase {
       control.setAttribute("aria-invalid", String(!valid));
     }
     const busy = !["idle", "ready", "error"].includes(snapshot.status);
-    const settingsLocked = !configuration.apiKeyStorageAvailable && !configuration.configured;
+    const hostManagedConnection = isHostManagedConnection(snapshot, formValue(form, "provider"));
+    const settingsLocked = !configuration.configured
+      && (hostManagedConnection || !configuration.apiKeyStorageAvailable);
     const valid = connection.valid && nativeFieldsValid && !busy && !settingsLocked;
     const save = this.#root.querySelector<HTMLButtonElement>('button[type="submit"]');
     if (save) save.disabled = !valid;
@@ -995,6 +1009,16 @@ function connectionFieldValidity(
   return { valid: invalidFields.size === 0, invalidFields };
 }
 
+function isHostManagedConnection(
+  snapshot: AiAppAssistantSettingsSnapshot,
+  providerId: string
+): boolean {
+  const provider = snapshot.providers.find((candidate) => candidate.id === providerId);
+  if (provider) return provider.connectionManagement === "host";
+  return snapshot.providers.length > 0
+    && snapshot.providers.every((candidate) => candidate.connectionManagement === "host");
+}
+
 function unavailableConnectionActions() {
   return {
     canLoadModels: false,
@@ -1036,7 +1060,7 @@ const STYLES = `
   :host{--ai-accent-contrast:#fff;--ai-header:linear-gradient(135deg,var(--ai-accent),color-mix(in srgb,var(--ai-accent) 70%,#000));--ai-header-text:var(--ai-accent-contrast)}
   .modal{border:0}
   .modal>header{color:var(--ai-header-text);background:var(--ai-header);border-bottom-color:transparent}.modal>header button{color:inherit}
-  .field{display:flex;flex-direction:column;gap:5px}.simple-dropdown{position:relative}.dropdown-value{position:absolute!important;width:1px!important;height:1px!important;min-height:0!important;padding:0!important;overflow:hidden;opacity:0;pointer-events:none}
+  .field{display:flex;flex-direction:column;gap:5px}.managed-value{display:flex;align-items:center;min-height:38px;padding:7px 9px;color:var(--ai-text);background:var(--ai-muted);border:1px solid var(--ai-border);border-radius:8px}.simple-dropdown{position:relative}.dropdown-value{position:absolute!important;width:1px!important;height:1px!important;min-height:0!important;padding:0!important;overflow:hidden;opacity:0;pointer-events:none}
   .dropdown-trigger{display:flex;align-items:center;justify-content:space-between;width:100%;padding:7px 10px;color:var(--ai-text);background:var(--ai-muted);text-align:left;cursor:pointer}.dropdown-chevron{margin-left:12px;color:var(--ai-text-muted);font-size:16px;line-height:1}
   .dropdown-options{position:absolute;z-index:4;top:calc(100% + 5px);left:0;right:0;max-height:220px;padding:6px;overflow-y:auto;color:var(--ai-text);background:var(--ai-surface);border:1px solid var(--ai-border);border-radius:12px;box-shadow:0 12px 30px #0003}
   .dropdown-options .dropdown-option{display:block;width:100%;min-height:34px;padding:7px 9px;color:var(--ai-text);background:transparent;border:0;border-radius:8px;text-align:left;cursor:pointer}.dropdown-options .dropdown-option:hover,.dropdown-options .dropdown-option:focus-visible,.dropdown-options .dropdown-option.active{color:var(--ai-text);background:var(--ai-muted)}

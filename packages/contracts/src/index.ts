@@ -3,14 +3,13 @@ import { z } from "zod";
 /** Wire protocol version shared by the browser client and the backend. */
 export const PROTOCOL_VERSION = "4" as const;
 
-/** Providers supported by the optional managed runtime and settings UI. */
-export const aiAppAssistantProviderSchema = z.enum([
-  "anthropic",
-  "google",
-  "mistral",
-  "ollama",
-  "openai"
-]);
+/**
+ * Stable provider/adapter identifier used by the managed runtime.
+ *
+ * Built-in providers use their public names. Host applications may register
+ * another identifier for an internal inference gateway or model runtime.
+ */
+export const aiAppAssistantProviderSchema = z.string().trim().min(1).max(100);
 
 export const aiAppAssistantAccessRuleSchema = z.discriminatedUnion("mode", [
   z.object({ mode: z.literal("all") }),
@@ -130,7 +129,9 @@ export const aiAppAssistantProviderInfoSchema = z.object({
   id: aiAppAssistantProviderSchema,
   label: z.string(),
   requiresApiKey: z.boolean(),
-  supportsModelDiscovery: z.boolean()
+  supportsModelDiscovery: z.boolean(),
+  /** Omitted by older servers, where the settings UI owns the connection. */
+  connectionManagement: z.enum(["settings", "host"]).optional()
 });
 
 export const aiAppAssistantModelInfoSchema = z.object({

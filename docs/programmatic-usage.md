@@ -162,6 +162,12 @@ import "@123toto/ai-app-assistant-client/settings-web-component";
 <ai-app-assistant-settings endpoint="/api/ai-app-assistant"></ai-app-assistant-settings>
 ```
 
+For host-managed inference adapters, this screen deliberately omits provider
+selection, API-key and base-URL controls. It still exposes the selected model,
+real connection testing, access rules, quotas and conversation limits. The
+`/providers` response advertises this distinction through
+`connectionManagement`.
+
 ## Headless browser client
 
 ```ts

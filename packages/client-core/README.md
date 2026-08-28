@@ -53,7 +53,7 @@ Angular and RxJS are optional peer dependencies. The main package and Web Compon
 
 ## Settings
 
-The optional `@123toto/ai-app-assistant-client/settings-web-component` entry point registers a generic administration screen. Applications with their own UI can use `@123toto/ai-app-assistant-client/settings` instead.
+The optional `@123toto/ai-app-assistant-client/settings-web-component` entry point registers a generic administration screen. It adapts to provider capabilities: host-managed inference adapters keep authentication and endpoint controls hidden while preserving model, connection-test, access and quota administration. Applications with their own UI can use `@123toto/ai-app-assistant-client/settings` instead.
 
 ## Capture privacy
 

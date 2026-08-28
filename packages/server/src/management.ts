@@ -1,12 +1,13 @@
 import { createHash, randomUUID } from "node:crypto";
-import type {
-  AiAppAssistantConfigurationFieldSource,
-  AiAppAssistantConfigurationInput,
-  AiAppAssistantConnectionResult,
-  AiAppAssistantConnectionTestInput,
-  AiAppAssistantCredentials,
-  AiAppAssistantManagedConfigurationView,
-  AiAppAssistantRuntimeConnection
+import {
+  generatedAnswerSchema,
+  type AiAppAssistantConfigurationFieldSource,
+  type AiAppAssistantConfigurationInput,
+  type AiAppAssistantConnectionResult,
+  type AiAppAssistantConnectionTestInput,
+  type AiAppAssistantCredentials,
+  type AiAppAssistantManagedConfigurationView,
+  type AiAppAssistantRuntimeConnection
 } from "@123toto/ai-app-assistant-contracts";
 import {
   type AiAppAssistantConfiguration,
@@ -25,15 +26,24 @@ import {
   type AiAppAssistantQuotaStore
 } from "./quota.js";
 import {
+  AI_APP_ASSISTANT_PROVIDERS,
   listAiModels,
   listAiProviders,
+  type BuiltInProvider,
   type AiModelInfo,
   type AiProviderInfo
 } from "./provider-catalog.js";
 import {
+  createAiSdkGenerator,
+  normalizeAiSdkGenerationError,
   testAiSdkConnection,
   type AiSdkConnectionTestResult
 } from "./ai-sdk.js";
+import type {
+  AiAppAssistantInferenceAdapter,
+  AiAppAssistantInferenceAdapterInput
+} from "./inference-adapter.js";
+import type { AnswerGenerator } from "./types.js";
 
 /** Minimal identity understood by the generic access and audit policies. */
 export interface AiAppAssistantRuntimeIdentity extends AiAppAssistantConfigurationActor {
@@ -69,7 +79,13 @@ export interface AiAppAssistantConfigurationManagerOptions {
   /** Minimum delay before retrying a disconnected provider on demand. */
   reconnectIntervalMs?: number;
   synchronizer?: AiAppAssistantConfigurationSynchronizer;
+  /** Host-owned inference backends, such as a corporate AI gateway. */
+  inferenceAdapters?: readonly AiAppAssistantInferenceAdapter[];
+  /** Defaults to true. Set false when only host-approved adapters may be used. */
+  includeBuiltInProviders?: boolean;
+  /** Legacy override for built-in provider connection tests. */
   testConnection?: (input: AiAppAssistantConnectionTestInput) => Promise<AiAppAssistantConnectionResult>;
+  /** Legacy override for built-in provider model discovery. */
   listModels?: (input: AiAppAssistantCredentials) => Promise<AiModelInfo[]>;
   now?: () => Date;
   createId?: () => string;
@@ -114,6 +130,7 @@ export class AiAppAssistantConfigurationManager {
   readonly #repository: AiAppAssistantConfigurationRepository;
   readonly #quotaStore: AiAppAssistantQuotaStore;
   readonly #options: AiAppAssistantConfigurationManagerOptions;
+  readonly #inferenceAdapters: ReadonlyMap<string, AiAppAssistantInferenceAdapter>;
   readonly #listeners = new Set<(event: AiAppAssistantConfigurationChangeEvent) => Promise<void> | void>();
   #runtimeConnection: AiAppAssistantRuntimeConnection = { status: "unchecked" };
   #recentConnectionValidation: {
@@ -130,6 +147,7 @@ export class AiAppAssistantConfigurationManager {
     this.#options = options;
     this.#repository = options.repository;
     this.#quotaStore = options.quotaStore ?? createMemoryAiAppAssistantQuotaStore();
+    this.#inferenceAdapters = createInferenceAdapterMap(options.inferenceAdapters ?? []);
   }
 
   /** Returns the current state of the host-controlled global kill switch. */
@@ -139,20 +157,39 @@ export class AiAppAssistantConfigurationManager {
       : this.#options.enabled ?? true;
   }
 
-  /** Returns the built-in provider catalogue; no credentials are exposed. */
+  /** Returns built-in providers and host-registered inference adapters. */
   public listProviders(): AiProviderInfo[] {
-    return listAiProviders();
+    return [
+      ...(this.#options.includeBuiltInProviders === false ? [] : listAiProviders()),
+      ...[...this.#inferenceAdapters.values()].map((adapter) => ({
+        id: adapter.id,
+        label: adapter.label,
+        requiresApiKey: adapter.requiresApiKey ?? false,
+        supportsModelDiscovery: adapter.supportsModelDiscovery ?? Boolean(adapter.listModels),
+        connectionManagement: adapter.connectionManagement ?? "host"
+      }))
+    ];
   }
 
   /** Discovers models with an explicit key or the currently configured secret. */
   public async listModels(input: AiAppAssistantCredentials): Promise<AiModelInfo[]> {
     this.assertEnabled();
+    const provider = this.requireProvider(input.provider);
     const apiKey = await this.resolveApiKey(input.provider, input.apiKey);
+    const adapter = this.#inferenceAdapters.get(input.provider);
+    if (adapter) {
+      if (!adapter.listModels) return [];
+      const models = await adapter.listModels({
+        ...(apiKey ? { apiKey } : {}),
+        ...(input.baseURL ? { baseURL: input.baseURL } : {})
+      });
+      return models.map((model) => ({ ...model, provider: adapter.id }));
+    }
     if (this.#options.listModels) {
       return this.#options.listModels({ ...input, ...(apiKey ? { apiKey } : {}) });
     }
     return listAiModels({
-      provider: input.provider,
+      provider: provider.id as BuiltInProvider,
       ...(apiKey ? { apiKey } : {}),
       ...(input.baseURL ? { baseURL: input.baseURL } : {})
     });
@@ -212,15 +249,14 @@ export class AiAppAssistantConfigurationManager {
   /** Tests credentials and briefly caches a successful result for the next save. */
   public async testConnection(input: AiAppAssistantConnectionTestInput): Promise<AiAppAssistantConnectionResult> {
     this.assertEnabled();
+    this.requireProvider(input.provider);
     const apiKey = await this.resolveApiKey(input.provider, input.apiKey);
-    const connection = this.#options.testConnection
-      ? await this.#options.testConnection({ ...input, ...(apiKey ? { apiKey } : {}) })
-      : await testAiSdkConnection({
-          model: `${input.provider}:${input.model}`,
-          ...(apiKey ? { apiKey } : {}),
-          ...(input.baseURL ? { baseURL: input.baseURL } : {}),
-          timeoutMs: this.#options.connectionTimeoutMs ?? 15_000
-        });
+    const connection = await this.testProviderConnection({
+      provider: input.provider,
+      model: input.model,
+      ...(apiKey ? { apiKey } : {}),
+      ...(input.baseURL ? { baseURL: input.baseURL } : {})
+    });
     if (connection.success) {
       this.#recentConnectionValidation = {
         signature: this.connectionSignature(input.provider, input.model, apiKey, input.baseURL),
@@ -248,7 +284,7 @@ export class AiAppAssistantConfigurationManager {
       return false;
     }
     const configuration = await this.getRuntimeConfiguration();
-    if (!configuration || (configuration.provider !== "ollama" && !configuration.apiKey)) {
+    if (!configuration || !this.isUsableConfiguration(configuration)) {
       this.#runtimeConnection = {
         status: "not-configured",
         checkedAt: this.now(),
@@ -256,19 +292,12 @@ export class AiAppAssistantConfigurationManager {
       };
       return false;
     }
-    const result = await (this.#options.testConnection
-      ? this.#options.testConnection({
-          provider: configuration.provider,
-          model: configuration.model,
-          ...(configuration.apiKey ? { apiKey: configuration.apiKey } : {}),
-          ...(configuration.baseURL ? { baseURL: configuration.baseURL } : {})
-        })
-      : testAiSdkConnection({
-          model: `${configuration.provider}:${configuration.model}`,
-          ...(configuration.apiKey ? { apiKey: configuration.apiKey } : {}),
-          ...(configuration.baseURL ? { baseURL: configuration.baseURL } : {}),
-          timeoutMs: this.#options.connectionTimeoutMs ?? 15_000
-        }));
+    const result = await this.testProviderConnection({
+      provider: configuration.provider,
+      model: configuration.model,
+      ...(configuration.apiKey ? { apiKey: configuration.apiKey } : {}),
+      ...(configuration.baseURL ? { baseURL: configuration.baseURL } : {})
+    });
     this.#runtimeConnection = {
       status: result.success ? "connected" : "disconnected",
       checkedAt: this.now(),
@@ -282,12 +311,31 @@ export class AiAppAssistantConfigurationManager {
     return result.success;
   }
 
+  /** Creates the active generator without exposing adapter credentials to the runtime. */
+  public async createGenerator(
+    configuration: Pick<AiAppAssistantConfiguration, "provider" | "model" | "apiKey" | "baseURL">,
+    runtimeOptions: { timeoutMs?: number; maxRetries?: number } = {}
+  ): Promise<AnswerGenerator> {
+    const adapter = this.#inferenceAdapters.get(configuration.provider);
+    const input = adapterInput(configuration);
+    if (adapter) return adapter.createGenerator(input);
+    this.requireProvider(configuration.provider);
+    return createAiSdkGenerator({
+      model: `${configuration.provider}:${configuration.model}`,
+      ...(configuration.apiKey ? { apiKey: configuration.apiKey } : {}),
+      ...(configuration.baseURL ? { baseURL: configuration.baseURL } : {}),
+      ...(runtimeOptions.timeoutMs ? { timeoutMs: runtimeOptions.timeoutMs } : {}),
+      ...(runtimeOptions.maxRetries !== undefined ? { maxRetries: runtimeOptions.maxRetries } : {})
+    });
+  }
+
   /** Validates sensitive connection changes, persists safely and records their author. */
   public async save(
     rawInput: AiAppAssistantConfigurationInput,
     actor: AiAppAssistantRuntimeIdentity
   ): Promise<AiAppAssistantConfigurationSaveResult> {
     const input = normalizeInput(rawInput);
+    this.requireProvider(input.provider);
     if (input.apiKey && !this.#options.apiKeyStorageAvailable) {
       throw new AiAppAssistantManagementError(
         503,
@@ -496,7 +544,7 @@ export class AiAppAssistantConfigurationManager {
       const storedApiKey = !environmentConnection && stored.apiKeyConfigured;
       const defaultApiKey = Boolean(defaults?.apiKey || (provider && this.resolveDefaultApiKey(provider)));
       const apiKeyConfigured = storedApiKey || defaultApiKey;
-      const usable = Boolean(provider && (provider === "ollama" || apiKeyConfigured));
+      const usable = Boolean(provider && this.isUsableProvider(provider, apiKeyConfigured));
       const { connectionSource: _connectionSource, ...safeStored } = stored;
       return {
         ...safeStored,
@@ -525,7 +573,7 @@ export class AiAppAssistantConfigurationManager {
     }
     const defaults = this.defaultConfiguration();
     const apiKeyConfigured = Boolean(defaults && (defaults.apiKey || this.resolveDefaultApiKey(defaults.provider)));
-    const usable = Boolean(defaults && (defaults.provider === "ollama" || apiKeyConfigured));
+    const usable = Boolean(defaults && this.isUsableProvider(defaults.provider, apiKeyConfigured));
     return {
       provider: usable ? defaults!.provider : null,
       model: usable ? defaults!.model : "",
@@ -570,7 +618,7 @@ export class AiAppAssistantConfigurationManager {
   public async canUse(identity: AiAppAssistantRuntimeIdentity): Promise<boolean> {
     if (!this.isEnabled()) return false;
     const configuration = await this.getRuntimeConfiguration();
-    if (!configuration || (configuration.provider !== "ollama" && !configuration.apiKey)) return false;
+    if (!configuration || !this.isUsableConfiguration(configuration)) return false;
     if (!await this.ensureRuntimeConnection()) return false;
     if (configuration.access.mode === "all") return true;
     if (configuration.access.mode === "users") return configuration.access.userIds.includes(identity.id);
@@ -647,6 +695,53 @@ export class AiAppAssistantConfigurationManager {
       model: result.model
     };
     return true;
+  }
+
+  private async testProviderConnection(
+    input: AiAppAssistantConnectionTestInput
+  ): Promise<AiAppAssistantConnectionResult> {
+    const identifier = `${input.provider}:${input.model}`;
+    const adapter = this.#inferenceAdapters.get(input.provider);
+    if (adapter) {
+      const result = adapter.testConnection
+        ? await adapter.testConnection(adapterInput(input))
+        : await probeInferenceAdapter(
+            adapter,
+            adapterInput(input),
+            this.#options.connectionTimeoutMs ?? 15_000
+          );
+      return { ...result, model: identifier };
+    }
+    const result = this.#options.testConnection
+      ? await this.#options.testConnection(input)
+      : await testAiSdkConnection({
+          model: identifier,
+          ...(input.apiKey ? { apiKey: input.apiKey } : {}),
+          ...(input.baseURL ? { baseURL: input.baseURL } : {}),
+          timeoutMs: this.#options.connectionTimeoutMs ?? 15_000
+        });
+    return { ...result, model: identifier };
+  }
+
+  private requireProvider(provider: string): AiProviderInfo {
+    const registered = this.listProviders().find((candidate) => candidate.id === provider);
+    if (!registered) {
+      throw new AiAppAssistantManagementError(
+        400,
+        "invalid_request",
+        `AI inference provider or adapter '${provider}' is not registered`
+      );
+    }
+    return registered;
+  }
+
+  private isUsableConfiguration(configuration: AiAppAssistantConfiguration): boolean {
+    return this.isUsableProvider(configuration.provider, Boolean(configuration.apiKey));
+  }
+
+  private isUsableProvider(provider: string, apiKeyConfigured: boolean): boolean {
+    const registered = this.listProviders().find((candidate) => candidate.id === provider);
+    return Boolean(registered && (!registered.requiresApiKey || apiKeyConfigured));
   }
 
   private async resolveApiKey(provider: AiAppAssistantConfiguration["provider"], explicit?: string): Promise<string | undefined> {
@@ -758,6 +853,93 @@ export class AiAppAssistantConfigurationManager {
 
   private async emit(event: AiAppAssistantConfigurationChangeEvent): Promise<void> {
     await Promise.all([...this.#listeners].map((listener) => listener(event)));
+  }
+}
+
+function createInferenceAdapterMap(
+  adapters: readonly AiAppAssistantInferenceAdapter[]
+): ReadonlyMap<string, AiAppAssistantInferenceAdapter> {
+  const registered = new Map<string, AiAppAssistantInferenceAdapter>();
+  const builtIns = new Set<string>(AI_APP_ASSISTANT_PROVIDERS);
+  for (const adapter of adapters) {
+    const id = adapter.id.trim();
+    if (!/^[a-z0-9][a-z0-9._-]*$/i.test(id) || id.length > 100 || id !== adapter.id) {
+      throw new TypeError(`Invalid AI inference adapter id: '${adapter.id}'`);
+    }
+    if (!adapter.label.trim()) {
+      throw new TypeError(`AI inference adapter '${id}' requires a label`);
+    }
+    if (builtIns.has(id) || registered.has(id)) {
+      throw new TypeError(`AI inference adapter id '${id}' is already registered`);
+    }
+    if (adapter.supportsModelDiscovery && !adapter.listModels) {
+      throw new TypeError(`AI inference adapter '${id}' enables model discovery without listModels`);
+    }
+    registered.set(id, adapter);
+  }
+  return registered;
+}
+
+function adapterInput(
+  input: Pick<AiAppAssistantConnectionTestInput, "model" | "apiKey" | "baseURL">
+): AiAppAssistantInferenceAdapterInput {
+  return {
+    model: input.model,
+    ...(input.apiKey ? { apiKey: input.apiKey } : {}),
+    ...(input.baseURL ? { baseURL: input.baseURL } : {})
+  };
+}
+
+async function probeInferenceAdapter(
+  adapter: AiAppAssistantInferenceAdapter,
+  input: AiAppAssistantInferenceAdapterInput,
+  timeoutMs: number
+): Promise<AiAppAssistantConnectionResult> {
+  const startedAt = Date.now();
+  const controller = new AbortController();
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const generator = await adapter.createGenerator(input);
+    const timeoutPromise = new Promise<never>((_resolve, reject) => {
+      timeout = setTimeout(() => {
+        controller.abort();
+        reject(new Error(`AI inference adapter connection test timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+    });
+    const output = await Promise.race([
+      generator.generate({
+        question: "Confirm that the supplied evidence is available.",
+        locale: "en",
+        items: [{
+          source: "document",
+          reference: "connection-test",
+          content: "The connection test evidence is available.",
+          relevance: 1
+        }]
+      }, controller.signal),
+      timeoutPromise
+    ]);
+    generatedAnswerSchema.parse(output);
+    return {
+      success: true,
+      model: generator.modelId,
+      latencyMs: Date.now() - startedAt
+    };
+  } catch (error) {
+    const failure = normalizeAiSdkGenerationError(error, 1);
+    return {
+      success: false,
+      model: `${adapter.id}:${input.model}`,
+      latencyMs: Date.now() - startedAt,
+      error: {
+        code: failure.code,
+        message: failure.message,
+        retryable: failure.retryable,
+        ...(failure.providerStatus !== undefined ? { providerStatus: failure.providerStatus } : {})
+      }
+    };
+  } finally {
+    if (timeout) clearTimeout(timeout);
   }
 }
 

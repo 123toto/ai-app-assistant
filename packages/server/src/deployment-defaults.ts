@@ -22,7 +22,7 @@ export interface AiAppAssistantDeploymentDefaultsOptions {
 
 export interface AiAppAssistantDeploymentDefaults {
   configuration?: AiAppAssistantConfiguration;
-  resolveApiKey(provider: BuiltInProvider): string | undefined;
+  resolveApiKey(provider: string): string | undefined;
 }
 
 /** Parses deployment defaults once while retaining provider-neutral runtime configuration. */
@@ -34,8 +34,13 @@ export function createAiAppAssistantDeploymentDefaults(
   ) as Partial<Record<BuiltInProvider, string | undefined>>;
   const selectedProvider = options.provider;
   const selectedApiKey = options.apiKey?.trim() || undefined;
-  const resolveApiKey = (provider: BuiltInProvider): string | undefined =>
-    provider === selectedProvider ? selectedApiKey ?? apiKeys[provider] : apiKeys[provider];
+  const resolveApiKey = (provider: string): string | undefined => {
+    if (!listAiProviders().some((candidate) => candidate.id === provider)) return undefined;
+    const builtInProvider = provider as BuiltInProvider;
+    return builtInProvider === selectedProvider
+      ? selectedApiKey ?? apiKeys[builtInProvider]
+      : apiKeys[builtInProvider];
+  };
   if (!options.enabled || !options.model?.trim()) return { resolveApiKey };
 
   const rawModel = options.model.trim();

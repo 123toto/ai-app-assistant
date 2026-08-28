@@ -368,6 +368,53 @@ describe("AI assistant settings user journeys", () => {
     });
   });
 
+  it("keeps host-managed gateway credentials and endpoint out of the settings modal", async () => {
+    const api = new StrictSettingsApi({
+      ...connectedConfiguration(),
+      provider: "corporate-gateway" as never,
+      model: "approved-model",
+      apiKeyConfigured: false,
+      apiKeyStorageAvailable: false,
+      fieldSources: {
+        ...connectedConfiguration().fieldSources,
+        provider: "environment",
+        model: "environment",
+        apiKey: "none",
+        baseURL: "none"
+      }
+    }, undefined, [{
+      id: "corporate-gateway",
+      label: "Corporate AI Gateway",
+      requiresApiKey: false,
+      supportsModelDiscovery: true,
+      connectionManagement: "host"
+    }]);
+    const element = await mount(api);
+    const root = element.shadowRoot;
+
+    expect(root?.querySelector(".setup-notice")?.textContent).toContain("managed by the host application");
+    expect(root?.querySelector(".managed-value")?.textContent).toBe("Corporate AI Gateway");
+    expect(root?.querySelector("[name=apiKey]")).toBeNull();
+    expect(root?.querySelector("[name=baseURL]")).toBeNull();
+    expect(value(element, "provider")).toBe("corporate-gateway");
+    expect(value(element, "model")).toBe("approved-model");
+    expect(testButton(element).disabled).toBe(false);
+    expect(saveButton(element).disabled).toBe(false);
+
+    input(element, "maxRequests", "25");
+    root?.querySelector<HTMLFormElement>("form")
+      ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    await settle();
+
+    expect(api.lastBody("PUT", "/configuration")).toEqual(expect.objectContaining({
+      provider: "corporate-gateway",
+      model: "approved-model",
+      quota: { maxRequests: 25, windowSeconds: 3_600 }
+    }));
+    expect(api.lastBody("PUT", "/configuration")).not.toHaveProperty("apiKey");
+    expect(api.lastBody("PUT", "/configuration")).not.toHaveProperty("baseURL");
+  });
+
   it("blocks saving outside every documented usage limit", async () => {
     const api = new StrictSettingsApi(connectedConfiguration());
     const element = await mount(api);
@@ -612,7 +659,17 @@ class StrictSettingsApi {
     private readonly options: {
       roles: Array<{ id: string; label: string }>;
       users: Array<{ id: string; label: string }>;
-    } = { roles: [], users: [] }
+    } = { roles: [], users: [] },
+    private readonly providers: ReadonlyArray<{
+      id: string;
+      label: string;
+      requiresApiKey: boolean;
+      supportsModelDiscovery: boolean;
+      connectionManagement?: "settings" | "host";
+    }> = [
+      { id: "mistral", label: "Mistral", requiresApiKey: true, supportsModelDiscovery: true },
+      { id: "openai", label: "OpenAI", requiresApiKey: true, supportsModelDiscovery: true }
+    ]
   ) {}
 
   readonly fetch = async (input: string | URL | Request, init: RequestInit = {}): Promise<Response> => {
@@ -623,17 +680,17 @@ class StrictSettingsApi {
     this.calls.push({ method, path, ...(body === undefined ? {} : { body }) });
 
     if (method === "GET" && path === "/configuration") return json(this.configuration);
-    if (method === "GET" && path === "/providers") return json([
-      { id: "mistral", label: "Mistral", requiresApiKey: true, supportsModelDiscovery: true },
-      { id: "openai", label: "OpenAI", requiresApiKey: true, supportsModelDiscovery: true }
-    ]);
+    if (method === "GET" && path === "/providers") return json(this.providers);
     if (method === "GET" && path === "/configuration/options") return json(this.options);
     if (method === "POST" && path === "/models") {
       if (this.modelFailuresRemaining > 0) {
         this.modelFailuresRemaining -= 1;
         return json({ message: "Provider unavailable" }, 502);
       }
-      const provider = (body as { provider: "mistral" | "openai" }).provider;
+      const provider = (body as { provider: string }).provider;
+      if (provider === "corporate-gateway") return json([
+        { id: "approved-model", provider, label: "Approved model" }
+      ]);
       return json(provider === "mistral" ? [
         { id: "mistral-small-latest", provider },
         { id: "mistral-medium-latest", provider },

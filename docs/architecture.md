@@ -26,7 +26,7 @@ The core server uses standard `Request`, `Response`, `ReadableStream` and NDJSON
 | Library provides | Host application provides |
 | --- | --- |
 | Chat lifecycle and transport | Mount point and optional visual customization |
-| Built-in model resolution | Provider secret or custom generator |
+| Built-in model resolution and managed adapter lifecycle | Provider secret, host-owned inference adapter or custom generator |
 | Document preparation and budgeting | Document sources and refresh timing |
 | Generic settings, quotas and audit | Identity and authorization rules |
 | Memory and Redis adapters | Existing Redis client or custom storage |
@@ -55,6 +55,13 @@ The managed server adds:
 - a complete HTTP API for the generic settings UI.
 
 The host still owns the authenticated identity, administrator policy and any user directory exposed to the settings screen.
+
+Host applications may register inference adapters for private gateways or cloud
+runtimes. Built-in providers remain enabled by default for compatibility and
+can be excluded explicitly. Adapter credentials and token renewal stay inside
+the host application; the generic settings UI hides those host-managed fields
+while retaining model and policy administration. The managed runtime continues
+to own connection status, access, quotas, telemetry and safe transport.
 
 ## Reliability
 
