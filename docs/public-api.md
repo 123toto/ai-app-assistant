@@ -6,7 +6,7 @@ Only package exports listed below are part of the supported API. Internal `src` 
 
 | Entry point | Main exports |
 | --- | --- |
-| `@123toto/ai-app-assistant-server` | `createAiAppAssistantServer`, `createManagedAiAppAssistantServer`, `createAiAppAssistantNodeHttpListener`, model adapters, configuration, quota, telemetry and storage primitives |
+| `@123toto/ai-app-assistant-server` | `createAiAppAssistantServer`, `createManagedAiAppAssistantServer`, `AiAppAssistantInferenceAdapter`, `createAiAppAssistantNodeHttpListener`, model adapters, configuration, quota, telemetry and storage primitives |
 | `@123toto/ai-app-assistant-server/ai-sdk` | Vercel AI SDK generator and provider error types |
 | `@123toto/ai-app-assistant-server/express` | `createManagedAiAppAssistantExpressHandler` |
 | `@123toto/ai-app-assistant-server/nest` | `createManagedAiAppAssistantNestModule`, `MANAGED_AI_APP_ASSISTANT_SERVER` |
@@ -19,7 +19,7 @@ The managed HTTP API exposes these relative routes:
 | `POST` | `/ask` | Complete answer |
 | `POST` | `/ask/stream` | NDJSON streamed answer |
 | `GET` | `/configuration` | Safe effective configuration |
-| `GET` | `/providers` | Provider catalogue |
+| `GET` | `/providers` | Provider catalogue and connection-management capabilities |
 | `GET` | `/configuration/options` | Optional roles and users |
 | `POST` | `/models` | Model discovery |
 | `POST` | `/configuration/test` | Connection test |

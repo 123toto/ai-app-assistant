@@ -102,6 +102,19 @@ Native Node and Fetch-compatible runtimes can use `createAiAppAssistantNodeHttpL
 
 OpenAI, Anthropic, Mistral, Google/Gemini and Ollama are supported through `provider:model` identifiers. Consumers may inject any Vercel AI SDK model or implement the provider-neutral `AnswerGenerator` interface.
 
+Managed applications can register an `AiAppAssistantInferenceAdapter` for a
+corporate AI gateway or another cloud runtime. Set
+`includeBuiltInProviders: false` to expose only host-approved adapters. Adapter
+authentication remains application-owned; no public-provider API key is
+required unless the adapter explicitly declares `requiresApiKey: true`.
+Custom adapters are host-managed by default, so the generic settings UI hides
+provider credentials and endpoint controls while retaining model selection,
+connection tests, access rules and quotas. Set `connectionManagement:
+"settings"` only when administrators may configure the connection in that UI.
+
+See the [extension-point guide](https://github.com/123toto/ai-app-assistant/blob/main/docs/extension-points.md#model-adapter-pattern)
+for the complete managed-server example.
+
 ## Telemetry
 
 The managed server records counts, durations, token usage and normalized failures. It never records questions, HTML, user identities or credentials. Redis persistence is selected automatically when managed Redis storage is configured; use `telemetry: false` to disable it.

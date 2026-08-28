@@ -85,10 +85,15 @@ export {
   listAiModels,
   listAiProviders,
   type AiModelInfo,
+  type AiProviderConnectionManagement,
   type AiProviderInfo,
   type BuiltInProvider,
   type ListAiModelsOptions
 } from "./provider-catalog.js";
+export type {
+  AiAppAssistantInferenceAdapter,
+  AiAppAssistantInferenceAdapterInput
+} from "./inference-adapter.js";
 export {
   createAes256GcmSecretProtector,
   AiAppAssistantConfigurationConflictError,

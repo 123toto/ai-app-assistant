@@ -8,7 +8,7 @@ AI App Assistant keeps application-specific concerns at its edges. This page sep
 | --- | --- | --- |
 | Browser UI | Headless client and controller | Web Component and Angular connector |
 | Backend transport | Fetch-compatible handlers and Node HTTP listener | Express and Nest connectors |
-| Model provider | `AnswerGenerator` or an injected Vercel AI SDK model | OpenAI, Anthropic, Mistral, Google and Ollama identifiers |
+| Model provider | `AiAppAssistantInferenceAdapter`, `AnswerGenerator` or an injected Vercel AI SDK model | OpenAI, Anthropic, Mistral, Google and Ollama identifiers |
 | Documents | `DocumentationSource[]` and runtime `setDocuments()` | String and JSON-compatible content, including Markdown and OpenAPI |
 | Authentication | `resolveContext` or `resolveIdentity` callbacks | Application-defined users, roles and authorization |
 | Persistence | `AiAppAssistantKeyValueStore` | Memory and Redis stores |
@@ -85,7 +85,60 @@ Future authentication packages would only be convenience bridges. They should no
 
 ## Model adapter pattern
 
-Implement `AnswerGenerator` when a provider or inference runtime is not covered by the built-in model identifiers:
+Register `AiAppAssistantInferenceAdapter` when a managed application must call a
+corporate gateway or cloud runtime instead of a built-in public provider. The
+adapter owns endpoint selection, authentication and token renewal. The library
+only receives a generator and safe model metadata:
+
+```ts
+import {
+  createAiSdkGenerator,
+  createManagedAiAppAssistantServer,
+  type AiAppAssistantInferenceAdapter
+} from "@123toto/ai-app-assistant-server";
+
+// Application-owned client. It may use a private endpoint, workload identity,
+// a rotating token, or any provider package selected by the application.
+const corporateGateway = createCorporateGatewayClient();
+
+const gatewayAdapter: AiAppAssistantInferenceAdapter = {
+  id: "corporate-gateway",
+  label: "Corporate AI Gateway",
+  // This is the default for custom adapters. Authentication and endpoint
+  // controls are therefore never exposed by the generic settings screen.
+  connectionManagement: "host",
+  createGenerator: async ({ model }) => createAiSdkGenerator({
+    model: await corporateGateway.languageModel(model),
+    modelId: `corporate-gateway:${model}`
+  }),
+  listModels: async () => corporateGateway.listModels()
+};
+
+const aiAppAssistant = createManagedAiAppAssistantServer({
+  configuration: {
+    enabled: process.env.AI_APP_ASSISTANT_LLM_ENABLED === "true",
+    inferenceAdapters: [gatewayAdapter],
+    // Enterprise hosts can completely remove the public-provider choices.
+    includeBuiltInProviders: false,
+    defaultConfiguration: {
+      provider: gatewayAdapter.id,
+      model: process.env.AI_APP_ASSISTANT_LLM_MODEL!,
+      access: { mode: "all" }
+    }
+  },
+  http
+});
+```
+
+`testConnection` is optional. When omitted, the managed runtime performs a real
+bounded generation and validates the structured answer before reporting the
+adapter as connected. `listModels` is also optional; omit it for a deployment
+with one fixed model.
+
+Using `createAiSdkGenerator` is the preferred path when the gateway can supply a
+Vercel AI SDK `LanguageModel`: the library keeps its prompt, structured schema,
+retry, timeout and streaming behavior. Implement `AnswerGenerator` directly
+only when the inference runtime cannot expose an AI SDK-compatible model:
 
 ```ts
 import type { AnswerGenerator } from "@123toto/ai-app-assistant-server";
@@ -104,3 +157,15 @@ const generator: AnswerGenerator = {
 ```
 
 The browser transport and validated answer contract remain unchanged.
+
+The adapter id is a configuration identifier, not a provider credential.
+Custom adapters default to `connectionManagement: "host"`: the generic settings
+screen displays the adapter label and model but hides provider selection, API
+key and base URL controls. Model discovery, connection testing, access rules,
+quotas and conversation limits remain available.
+
+An adapter that authenticates through workload identity or an
+application-owned secret normally leaves `requiresApiKey` unset. Set both
+`connectionManagement: "settings"` and `requiresApiKey: true` only when the
+generic settings API is deliberately allowed to receive and persist an adapter
+key. Built-in public providers retain this settings-managed behavior.

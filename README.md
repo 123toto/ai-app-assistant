@@ -157,6 +157,11 @@ Angular applications may instead use `provideAiAppAssistant`, `AiAppAssistantCom
 | `ollama:model` | No key required by default |
 
 Any Vercel AI SDK `LanguageModel` or custom `AnswerGenerator` can be injected instead.
+Managed consumers can also register an `AiAppAssistantInferenceAdapter` owned by
+their application, for example to call a corporate AI gateway without exposing
+the gateway authentication or public-provider credentials to the library.
+The generic settings UI automatically hides credentials and endpoint controls
+for these host-managed adapters while keeping model and usage policies visible.
 
 ## Security defaults
 

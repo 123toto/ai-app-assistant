@@ -4,7 +4,7 @@ import {
   testAiSdkConnection,
   type AiSdkConnectionTestResult
 } from "./ai-sdk.js";
-import type { BuiltInProvider } from "./provider-catalog.js";
+import type { AiAppAssistantProvider } from "@123toto/ai-app-assistant-contracts";
 
 /** Generic access rule; host applications map their own roles and user IDs. */
 export type AiAppAssistantAccessRule =
@@ -53,7 +53,7 @@ export interface AiAppAssistantConfigurationAdministration {
 
 /** Provider configuration owned by the library and persisted by an adapter. */
 export interface AiAppAssistantConfiguration {
-  provider: BuiltInProvider;
+  provider: AiAppAssistantProvider;
   model: string;
   /** Whether provider fields override deployment defaults or merely accompany stored policies. */
   connectionSource?: "environment" | "override";
@@ -145,7 +145,7 @@ const administrationSchema = z.object({
 
 const persistedConfigurationSchema = z.object({
   version: z.literal(1),
-  provider: z.enum(["anthropic", "google", "mistral", "ollama", "openai"]),
+  provider: z.string().trim().min(1).max(100),
   model: z.string().min(1),
   connectionSource: z.enum(["environment", "override"]).optional(),
   protectedApiKey: z.string().min(1).optional(),

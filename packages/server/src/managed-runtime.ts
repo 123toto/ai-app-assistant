@@ -2,7 +2,6 @@ import type {
   AiAppAssistantRequest,
   AiAppAssistantResponse
 } from "@123toto/ai-app-assistant-contracts";
-import { createAiSdkGenerator } from "./ai-sdk.js";
 import { createAiAppAssistant, type AiAppAssistant, type AiAppAssistantStreamEvent } from "./assistant.js";
 import {
   AiAppAssistantConfigurationManager,
@@ -113,10 +112,7 @@ export function createManagedAiAppAssistantRuntime<TIdentity extends AiAppAssist
           ...(configuration.apiKey ? { apiKey: configuration.apiKey } : {}),
           ...(configuration.baseURL ? { baseURL: configuration.baseURL } : {})
         })
-      : createAiSdkGenerator({
-          model: `${configuration.provider}:${configuration.model}`,
-          ...(configuration.apiKey ? { apiKey: configuration.apiKey } : {}),
-          ...(configuration.baseURL ? { baseURL: configuration.baseURL } : {}),
+      : await options.configuration.createGenerator(configuration, {
           ...(options.timeoutMs ? { timeoutMs: options.timeoutMs } : {}),
           ...(options.maxRetries !== undefined ? { maxRetries: options.maxRetries } : {})
         });

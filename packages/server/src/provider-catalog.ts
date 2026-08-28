@@ -4,18 +4,23 @@ export const AI_APP_ASSISTANT_PROVIDERS = ["anthropic", "google", "mistral", "ol
 /** Provider identifier derived from the runtime-neutral exported catalog. */
 export type BuiltInProvider = typeof AI_APP_ASSISTANT_PROVIDERS[number];
 
+/** Identifies where endpoint and credential configuration is owned. */
+export type AiProviderConnectionManagement = "settings" | "host";
+
 /** Stable provider metadata suitable for a settings interface. */
 export interface AiProviderInfo {
-  id: BuiltInProvider;
+  id: string;
   label: string;
   requiresApiKey: boolean;
   supportsModelDiscovery: boolean;
+  /** Built-ins use the generic settings UI; private adapters default to the host. */
+  connectionManagement: AiProviderConnectionManagement;
 }
 
 /** Provider-neutral model metadata returned by discovery endpoints. */
 export interface AiModelInfo {
   id: string;
-  provider: BuiltInProvider;
+  provider: string;
   label?: string;
   createdAt?: string;
 }
@@ -30,11 +35,11 @@ export interface ListAiModelsOptions {
 }
 
 const PROVIDERS: readonly AiProviderInfo[] = Object.freeze([
-  { id: "anthropic", label: "Anthropic", requiresApiKey: true, supportsModelDiscovery: true },
-  { id: "google", label: "Google Gemini", requiresApiKey: true, supportsModelDiscovery: true },
-  { id: "mistral", label: "Mistral AI", requiresApiKey: true, supportsModelDiscovery: true },
-  { id: "openai", label: "OpenAI", requiresApiKey: true, supportsModelDiscovery: true },
-  { id: "ollama", label: "Ollama", requiresApiKey: false, supportsModelDiscovery: true }
+  { id: "anthropic", label: "Anthropic", requiresApiKey: true, supportsModelDiscovery: true, connectionManagement: "settings" },
+  { id: "google", label: "Google Gemini", requiresApiKey: true, supportsModelDiscovery: true, connectionManagement: "settings" },
+  { id: "mistral", label: "Mistral AI", requiresApiKey: true, supportsModelDiscovery: true, connectionManagement: "settings" },
+  { id: "openai", label: "OpenAI", requiresApiKey: true, supportsModelDiscovery: true, connectionManagement: "settings" },
+  { id: "ollama", label: "Ollama", requiresApiKey: false, supportsModelDiscovery: true, connectionManagement: "settings" }
 ]);
 
 /** Returns a copy so consumers cannot mutate the library's provider registry. */
