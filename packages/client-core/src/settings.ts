@@ -99,6 +99,7 @@ export interface AiAppAssistantSettingsSnapshot {
   optionsAvailable: boolean;
   connectionTest?: AiAppAssistantConnectionResult;
   error?: Error | undefined;
+  errorScope?: "connection" | "usage" | "global" | undefined;
 }
 
 export type AiAppAssistantSettingsListener = (snapshot: AiAppAssistantSettingsSnapshot) => void;
@@ -145,7 +146,7 @@ export class AiAppAssistantSettingsController {
 
   /** Loads all non-secret values required by a settings screen. */
   public async initialize(): Promise<AiAppAssistantSettingsSnapshot> {
-    this.update({ status: "loading", error: undefined });
+    this.update({ status: "loading", error: undefined, errorScope: undefined });
     try {
       const [configuration, providers, directory] = await Promise.all([
         this.client.getConfiguration(),
@@ -160,7 +161,8 @@ export class AiAppAssistantSettingsController {
         providers,
         options: directory.value,
         optionsAvailable: directory.available,
-        error: undefined
+        error: undefined,
+        errorScope: undefined
       });
       return this.snapshot;
     } catch (error) {
@@ -170,14 +172,14 @@ export class AiAppAssistantSettingsController {
 
   /** Loads provider models; the configured secret can stay server-side. */
   public async loadModels(input: AiAppAssistantCredentials): Promise<readonly AiAppAssistantModelInfoContract[]> {
-    this.update({ status: "loading-models", error: undefined });
+    this.update({ status: "loading-models", error: undefined, errorScope: undefined });
     try {
       const models = await this.client.listModels(input);
       this.#modelsLoadedFor = modelDiscoverySignature(input);
-      this.update({ status: "ready", models, error: undefined });
+      this.update({ status: "ready", models, error: undefined, errorScope: undefined });
       return models;
-    } catch (error) {
-      throw this.fail(error);
+    } catch {
+      throw this.fail(new Error("Unable to load the model list."), "connection");
     }
   }
 
@@ -188,7 +190,7 @@ export class AiAppAssistantSettingsController {
 
   /** Tests a draft connection without persisting it. */
   public async test(input: AiAppAssistantConnectionTestInput): Promise<AiAppAssistantConnectionResult> {
-    this.update({ status: "testing", error: undefined });
+    this.update({ status: "testing", error: undefined, errorScope: undefined });
     try {
       const connectionTest = await this.client.testConnection(input);
       // The server updates the effective runtime status when the tested draft
@@ -200,40 +202,43 @@ export class AiAppAssistantSettingsController {
         status: "ready",
         ...(configuration ? { configuration } : {}),
         connectionTest,
-        error: undefined
+        error: undefined,
+        errorScope: undefined
       });
       return connectionTest;
     } catch (error) {
-      throw this.fail(error);
+      throw this.fail(error, "connection");
     }
   }
 
   /** Persists only when the server accepts any connection-sensitive changes. */
   public async save(input: AiAppAssistantConfigurationInput): Promise<boolean> {
-    this.update({ status: "saving", error: undefined });
+    const errorScope = configurationErrorScope(input, this.#snapshot.configuration);
+    this.update({ status: "saving", error: undefined, errorScope: undefined });
     try {
       const result = await this.client.save(input);
       this.update({
         status: "ready",
         ...(result.configuration ? { configuration: result.configuration } : {}),
         connectionTest: result.connection,
-        error: undefined
+        error: undefined,
+        errorScope: undefined
       });
       return result.saved;
     } catch (error) {
-      throw this.fail(error);
+      throw this.fail(error, errorScope);
     }
   }
 
   /** Revokes the stored secret and refreshes the safe configuration snapshot. */
   public async revokeApiKey(): Promise<void> {
-    this.update({ status: "saving", error: undefined });
+    this.update({ status: "saving", error: undefined, errorScope: undefined });
     try {
       const configuration = await this.client.revokeApiKey();
       this.#modelsLoadedFor = undefined;
-      this.update({ status: "ready", configuration, models: [], error: undefined });
+      this.update({ status: "ready", configuration, models: [], error: undefined, errorScope: undefined });
     } catch (error) {
-      throw this.fail(error);
+      throw this.fail(error, "connection");
     }
   }
 
@@ -242,9 +247,37 @@ export class AiAppAssistantSettingsController {
     for (const listener of this.#listeners) listener(this.snapshot);
   }
 
-  private fail(error: unknown): Error {
+  private fail(error: unknown, errorScope: "connection" | "usage" | "global" = "global"): Error {
     const normalized = error instanceof Error ? error : new Error(String(error));
-    this.update({ status: "error", error: normalized });
+    this.update({ status: "error", error: normalized, errorScope });
     return normalized;
   }
+}
+
+function configurationErrorScope(
+  input: AiAppAssistantConfigurationInput,
+  configuration: AiAppAssistantManagedConfigurationView | undefined
+): "connection" | "usage" | "global" {
+  if (!configuration) return "global";
+  const connectionChanged = input.provider !== configuration.provider
+    || input.model !== configuration.model
+    || normalizedOptional(input.baseURL) !== normalizedOptional(configuration.baseURL)
+    || Boolean(input.apiKey?.trim());
+  const quotaChanged = input.quota !== undefined && (
+    input.quota.maxRequests !== configuration.quota?.maxRequests
+    || input.quota.windowSeconds !== configuration.quota?.windowSeconds
+  );
+  const usageChanged = JSON.stringify(input.access) !== JSON.stringify(configuration.access)
+    || quotaChanged
+    || input.maxConversationTurns !== configuration.maxConversationTurns
+    || (input.allowModelChangesByOthers !== undefined
+      && input.allowModelChangesByOthers !== configuration.allowModelChangesByOthers);
+  if (connectionChanged && usageChanged) return "global";
+  if (connectionChanged) return "connection";
+  if (usageChanged) return "usage";
+  return "global";
+}
+
+function normalizedOptional(value: string | undefined): string {
+  return value?.trim().replace(/\/+$/, "") ?? "";
 }

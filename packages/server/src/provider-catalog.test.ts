@@ -56,4 +56,61 @@ describe("provider catalog", () => {
     await expect(request).rejects.toBeInstanceOf(AiModelDiscoveryError);
     await expect(request).rejects.not.toThrow("secret provider details");
   });
+
+  it.each([
+    ["openai", undefined, "https://api.openai.com/v1/models", "authorization", "Bearer secret"],
+    ["anthropic", undefined, "https://api.anthropic.com/v1/models", "x-api-key", "secret"],
+    ["ollama", undefined, "http://localhost:11434/v1/models", "authorization", "Bearer ollama"],
+    ["openai", "https://gateway.example.test/v1/", "https://gateway.example.test/v1/models", "authorization", "Bearer secret"]
+  ] as const)("builds the documented %s discovery request", async (
+    provider, baseURL, expectedUrl, header, expectedHeader
+  ) => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({
+      data: [{ id: "model-b" }, { id: "model-a", display_name: "Model A" }]
+    }), { status: 200 }));
+    const signal = new AbortController().signal;
+
+    const models = await listAiModels({
+      provider,
+      ...(provider === "ollama" ? {} : { apiKey: "secret" }),
+      ...(baseURL ? { baseURL } : {}),
+      signal,
+      fetch: fetchMock
+    });
+
+    expect(models.map(({ id }) => id)).toEqual(["model-a", "model-b"]);
+    expect(fetchMock).toHaveBeenCalledWith(expectedUrl, expect.objectContaining({
+      method: "GET",
+      headers: expect.objectContaining({ [header]: expectedHeader }),
+      signal
+    }));
+    if (provider === "anthropic") {
+      expect(fetchMock.mock.calls[0]?.[1]?.headers).toMatchObject({
+        "anthropic-version": "2023-06-01"
+      });
+    }
+  });
+
+  it("requires public-provider credentials and rejects unsafe custom endpoints", async () => {
+    await expect(listAiModels({ provider: "openai", fetch: vi.fn() }))
+      .rejects.toThrow("API key is required");
+    await expect(listAiModels({
+      provider: "openai",
+      apiKey: "secret",
+      baseURL: "ftp://gateway.example.test",
+      fetch: vi.fn()
+    })).rejects.toThrow("HTTP(S) URL without credentials");
+    await expect(listAiModels({
+      provider: "openai",
+      apiKey: "secret",
+      baseURL: "https://user:password@gateway.example.test",
+      fetch: vi.fn()
+    })).rejects.toThrow("HTTP(S) URL without credentials");
+  });
+
+  it("returns a fresh provider catalogue on every call", () => {
+    const first = listAiProviders();
+    first[0]!.label = "Mutated";
+    expect(listAiProviders()[0]?.label).not.toBe("Mutated");
+  });
 });

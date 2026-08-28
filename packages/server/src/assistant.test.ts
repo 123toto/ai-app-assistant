@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createAiAppAssistant } from "./assistant.js";
 import type { AnswerGenerator, EvidenceBundle } from "./types.js";
 
@@ -179,6 +179,59 @@ describe("createAiAppAssistant", () => {
       outputTokens: 180,
       totalTokens: 1_380
     });
+  });
+
+  it("returns a safe insufficient answer without calling the provider when evidence is below policy", async () => {
+    const generate = vi.fn();
+    const assistant = createAiAppAssistant({
+      generator: { modelId: "fake:no-evidence", generate },
+      policies: { minimumEvidence: 2 }
+    });
+
+    const result = await assistant.answer(request());
+
+    expect(generate).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      answerability: "not-answerable",
+      confidence: { level: "insufficient", score: 0 },
+      metadata: { model: "fake:no-evidence" }
+    });
+    expect(result.limitations).not.toHaveLength(0);
+  });
+
+  it("forwards provider stream progress and always finishes with a validated completion", async () => {
+    const assistant = createAiAppAssistant({
+      generator: {
+        modelId: "fake:stream",
+        async generate() { throw new Error("The streaming path must be used"); },
+        async *stream(bundle) {
+          yield { type: "partial" as const, text: "Draft answer" };
+          yield { type: "retry" as const, attempt: 1, maxRetries: 2, delayMs: 5 };
+          return {
+            answer: { summary: "Final answer", sections: [] },
+            evidence: bundle.items.map(({ source, reference }) => ({ source, reference })),
+            limitations: []
+          };
+        }
+      }
+    });
+    const generation = assistant.stream(request());
+    const events: unknown[] = [];
+    let returned;
+    while (true) {
+      const next = await generation.next();
+      if (next.done) { returned = next.value; break; }
+      events.push(next.value);
+    }
+
+    expect(events.map((event) => (event as { type: string }).type)).toEqual([
+      "status", "status", "partial", "retry", "complete"
+    ]);
+    expect(events.at(-1)).toMatchObject({
+      type: "complete",
+      response: { answer: { summary: "Final answer" }, metadata: { model: "fake:stream" } }
+    });
+    expect(returned).toMatchObject({ requestId: "request-1", answer: { summary: "Final answer" } });
   });
 });
 

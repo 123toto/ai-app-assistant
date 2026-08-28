@@ -107,4 +107,71 @@ describe("createAiAppAssistantFetchHandlers", () => {
     expect(events[1]).toEqual({ type: "partial", text: "Anonymous" });
     expect(events[2]).toMatchObject({ type: "complete", response: { requestId: "request-1" } });
   });
+
+  it("rejects unsupported methods, invalid JSON and oversized bodies before assistant work", async () => {
+    const instance = assistant();
+    const handlers = createAiAppAssistantFetchHandlers({ assistant: instance, allowAnonymous: true, maxBodyBytes: 20 });
+
+    const method = await handlers.ask(new Request("https://app.example/ask", { method: "GET" }));
+    const invalidJson = await handlers.ask(new Request("https://app.example/ask", {
+      method: "POST", body: "not-json"
+    }));
+    const oversized = await handlers.ask(new Request("https://app.example/ask", {
+      method: "POST",
+      headers: { "content-length": "21" },
+      body: "{}"
+    }));
+
+    expect(method.status).toBe(405);
+    expect(await method.json()).toMatchObject({ error: "method_not_allowed" });
+    expect(invalidJson.status).toBe(400);
+    expect(await invalidJson.json()).toMatchObject({ error: "invalid_json" });
+    expect(oversized.status).toBe(413);
+    expect(await oversized.json()).toMatchObject({ error: "request_too_large" });
+    expect(instance.answer).not.toHaveBeenCalled();
+  });
+
+  it("lets the host safely map unexpected errors with the original request", async () => {
+    const onError = vi.fn((_error, request: Request) => new Response(JSON.stringify({
+      error: "host_error",
+      path: new URL(request.url).pathname
+    }), { status: 418 }));
+    const failing = assistant();
+    failing.answer = vi.fn(async () => { throw new Error("internal detail"); });
+    const handlers = createAiAppAssistantFetchHandlers({
+      assistant: failing,
+      allowAnonymous: true,
+      onError
+    });
+
+    const result = await handlers.ask(post());
+
+    expect(result.status).toBe(418);
+    expect(await result.json()).toEqual({ error: "host_error", path: "/api/ai-app-assistant/ask" });
+    expect(onError).toHaveBeenCalledWith(expect.any(Error), expect.any(Request));
+  });
+
+  it("emits one safe terminal event when progressive generation fails", async () => {
+    const failing: AiAppAssistant = {
+      answer: vi.fn(),
+      async *stream() {
+        yield { type: "status" as const, phase: "preparing" as const };
+        throw new Error("provider response containing a secret");
+      }
+    };
+    const handlers = createAiAppAssistantFetchHandlers({ assistant: failing, allowAnonymous: true });
+
+    const result = await handlers.stream(post("/api/ai-app-assistant/ask/stream"));
+    const events = (await result.text()).trim().split("\n").map((line) => JSON.parse(line));
+
+    expect(events).toEqual([
+      { type: "status", phase: "preparing" },
+      {
+        type: "error",
+        message: "The assistant response could not be generated.",
+        retryable: false
+      }
+    ]);
+    expect(JSON.stringify(events)).not.toContain("secret");
+  });
 });

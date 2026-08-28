@@ -25,4 +25,26 @@ describe("AI App Assistant quota stores", () => {
     expect(key).not.toContain("visible-user-id");
     expect(ttl).toBe(60);
   });
+
+  it.each([
+    ["empty subjects", "", { maxRequests: 1, windowSeconds: 60 }],
+    ["non-positive request limits", "user", { maxRequests: 0, windowSeconds: 60 }],
+    ["fractional request limits", "user", { maxRequests: 1.5, windowSeconds: 60 }],
+    ["non-positive windows", "user", { maxRequests: 1, windowSeconds: 0 }]
+  ])("rejects %s before changing a quota counter", async (_description, subject, policy) => {
+    const store = createMemoryAiAppAssistantQuotaStore();
+    await expect(store.consume(subject, policy)).rejects.toBeInstanceOf(TypeError);
+  });
+
+  it("rejects malformed Redis quota replies", async () => {
+    const invalidShape = createRedisAiAppAssistantQuotaStore({ eval: vi.fn().mockResolvedValue("invalid") });
+    await expect(invalidShape.consume("user", { maxRequests: 1, windowSeconds: 60 }))
+      .rejects.toThrow("invalid quota result");
+
+    const invalidCounter = createRedisAiAppAssistantQuotaStore({
+      eval: vi.fn().mockResolvedValue(["not-a-number", 60])
+    });
+    await expect(invalidCounter.consume("user", { maxRequests: 1, windowSeconds: 60 }))
+      .rejects.toThrow("invalid quota counter");
+  });
 });

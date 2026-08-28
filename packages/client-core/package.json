@@ -1,6 +1,6 @@
 {
   "name": "@123toto/ai-app-assistant-client",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "license": "MIT",
   "description": "Framework-neutral browser client and UI for contextual in-app AI assistants",
   "repository": { "type": "git", "url": "git+https://github.com/123toto/ai-app-assistant.git", "directory": "packages/client-core" },

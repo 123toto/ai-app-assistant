@@ -6,6 +6,13 @@ import {
 } from "./controller.js";
 
 describe("normalizeAiAppAssistantError", () => {
+  it("uses the current AI Assistant product name in HTTP failures", () => {
+    const error = new AiAppAssistantHttpError(500, "");
+
+    expect(error.message).toBe("AI Assistant request failed with status 500.");
+    expect(error.message.toLowerCase()).not.toContain("docs");
+  });
+
   it("extracts a useful message from nested HTTP JSON", () => {
     const error = new AiAppAssistantHttpError(500, JSON.stringify({
       error: { message: "Provider temporarily unavailable" }

@@ -49,6 +49,78 @@ describe("AiAppAssistantConfigurationManager", () => {
       .toEqual(["provider", "apiKey", "model", "access", "quota", "conversation"]);
   });
 
+  it("matches host role identifiers exactly and grants access when any configured role matches", async () => {
+    const manager = createManager({
+      testConnection: async ({ provider, model }) => ({
+        success: true,
+        model: `${provider}:${model}`,
+        latencyMs: 1
+      })
+    });
+    await manager.save({
+      provider: "mistral",
+      model: "mistral-small-latest",
+      apiKey: "secret",
+      access: { mode: "roles", roles: ["consumer-admin", "consumer-editor"] }
+    }, actor);
+
+    await expect(manager.canUse({ id: "editor", label: "Editor", roles: ["consumer-reader", "consumer-editor"] }))
+      .resolves.toBe(true);
+    await expect(manager.canUse({ id: "different-case", label: "Different case", roles: ["CONSUMER-EDITOR"] }))
+      .resolves.toBe(false);
+    await expect(manager.canUse({ id: "unrelated", label: "Unrelated", roles: ["consumer-reader"] }))
+      .resolves.toBe(false);
+    await expect(manager.canUse({ id: "without-roles", label: "Without roles" }))
+      .resolves.toBe(false);
+  });
+
+  it("lets only the API-key owner delegate model changes to other administrators", async () => {
+    const manager = createManager({
+      testConnection: async ({ provider, model }) => ({
+        success: true,
+        model: `${provider}:${model}`,
+        latencyMs: 1
+      })
+    });
+    const ownerInput = {
+      provider: "mistral" as const,
+      model: "mistral-small-latest",
+      apiKey: "secret",
+      access: { mode: "all" as const }
+    };
+    const storedConnectionInput = {
+      provider: ownerInput.provider,
+      model: ownerInput.model,
+      access: ownerInput.access
+    };
+    const other = { id: "user-b", label: "User B", roles: ["admin"] };
+    await manager.save(ownerInput, actor);
+
+    await expect(manager.getView(other)).resolves.toMatchObject({
+      canChangeModel: false,
+      canManageCredentials: false,
+      canManageModelPolicy: false,
+      canRevokeApiKey: false
+    });
+    await expect(manager.save({ ...storedConnectionInput, model: "mistral-large-latest" }, other))
+      .rejects.toMatchObject({ status: 403, code: "forbidden" });
+
+    await manager.save({ ...storedConnectionInput, allowModelChangesByOthers: true }, actor);
+    await expect(manager.getView(other)).resolves.toMatchObject({
+      canChangeModel: true,
+      canManageCredentials: false,
+      canManageModelPolicy: false,
+      canRevokeApiKey: false
+    });
+    await expect(manager.save({ ...storedConnectionInput, model: "mistral-large-latest" }, other))
+      .resolves.toMatchObject({ saved: true });
+    await expect(manager.save({
+      ...storedConnectionInput,
+      model: "mistral-large-latest",
+      allowModelChangesByOthers: false
+    }, other)).rejects.toMatchObject({ status: 403, code: "forbidden" });
+  });
+
   it("does not call the provider again for auxiliary changes", async () => {
     const testConnection = vi.fn(async ({ provider, model }) => ({
       success: true as const,

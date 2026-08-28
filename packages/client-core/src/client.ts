@@ -123,7 +123,7 @@ export function createAiAppAssistantClient(options: AiAppAssistantClientOptions)
         if (event.type === "complete") response = event.response;
       }
 
-      if (!response) throw new Error("AI docs stream ended without a complete response.");
+      if (!response) throw new Error("AI Assistant stream ended without a complete response.");
       return response;
     }
   };
@@ -182,7 +182,7 @@ export class AiAppAssistantHttpError extends Error {
     readonly status: number,
     readonly responseBody: string
   ) {
-    super(`AI docs request failed with status ${status}.`);
+    super(`AI Assistant request failed with status ${status}.`);
     this.name = "AiAppAssistantHttpError";
   }
 }

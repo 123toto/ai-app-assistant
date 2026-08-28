@@ -34,8 +34,10 @@ describe("AiAppAssistantSettingsElement", () => {
     expect(fetch.mock.calls.some(([input]) => String(input).endsWith("/models"))).toBe(true);
     expect(element.shadowRoot?.querySelector("form")?.getAttribute("data-setup-state")).toBe("ready");
     expect(element.shadowRoot?.querySelector(".setup-notice")).toBeNull();
-    expect(element.shadowRoot?.querySelector<HTMLButtonElement>("[data-action=models]")?.disabled).toBe(true);
-    expect(element.shadowRoot?.querySelector<HTMLButtonElement>("[data-action=models]")?.title).toBe("Models are already loaded");
+    expect(element.shadowRoot?.querySelector<HTMLButtonElement>("[data-action=models]")?.disabled).toBe(false);
+    expect(element.shadowRoot?.querySelector<HTMLButtonElement>("[data-action=models]")?.title).toBe("");
+    expect(element.shadowRoot?.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(false);
+    expect(element.shadowRoot?.querySelector('[data-validation-field="apiKey"]')?.classList).not.toContain("validation-invalid");
   });
 
   it("closes without saving from the Cancel button", async () => {
@@ -140,6 +142,7 @@ describe("AiAppAssistantSettingsElement", () => {
 
     expect(element.shadowRoot?.querySelector("form")?.getAttribute("data-setup-state")).toBe("missing-all");
     expect(element.shadowRoot?.querySelector(".setup-notice")?.textContent).toContain("encryption key and a default connection are missing");
+    expect(element.shadowRoot?.querySelector(".setup-notice")?.closest("fieldset")?.classList).toContain("connection-settings");
     expect([...element.shadowRoot?.querySelectorAll<HTMLFieldSetElement>("fieldset") ?? []]
       .every((fieldset) => fieldset.disabled)).toBe(true);
     expect(element.shadowRoot?.querySelector<HTMLButtonElement>("button[type=submit]")?.disabled).toBe(true);
@@ -164,6 +167,7 @@ describe("AiAppAssistantSettingsElement", () => {
 
     expect(element.shadowRoot?.querySelector("form")?.getAttribute("data-setup-state")).toBe("default-only");
     expect(element.shadowRoot?.querySelector(".setup-notice")?.textContent).toContain("default connection is active");
+    expect(element.shadowRoot?.querySelector(".setup-notice")?.closest("fieldset")?.classList).toContain("connection-settings");
     expect(element.shadowRoot?.querySelector<HTMLSelectElement>("[name=provider]")?.disabled).toBe(true);
     expect(element.shadowRoot?.querySelector<HTMLInputElement>("[name=apiKey]")?.disabled).toBe(true);
     expect(element.shadowRoot?.querySelector<HTMLInputElement>("[name=model]")?.disabled).toBe(false);
@@ -190,10 +194,16 @@ describe("AiAppAssistantSettingsElement", () => {
     });
 
     expect(element.shadowRoot?.querySelector("form")?.getAttribute("data-setup-state")).toBe("storage-only");
-    expect(element.shadowRoot?.querySelector(".setup-notice")?.textContent).toContain("no connection is configured");
+    const setupNotice = element.shadowRoot?.querySelector(".setup-notice");
+    expect(setupNotice?.textContent).toBe("Secure storage is ready, but no connection is configured. Configure a connection to activate the assistant.");
+    expect(setupNotice?.closest("fieldset")?.classList).toContain("connection-settings");
+    expect(setupNotice?.parentElement).not.toBe(element.shadowRoot?.querySelector("form"));
+    expect(setupNotice?.textContent).not.toMatch(/provider|API key|model/i);
     expect(element.shadowRoot?.querySelector<HTMLSelectElement>("[name=provider]")?.disabled).toBe(false);
     expect(element.shadowRoot?.querySelector<HTMLInputElement>("[name=apiKey]")?.disabled).toBe(false);
-    expect(element.shadowRoot?.querySelector<HTMLButtonElement>("button[type=submit]")?.disabled).toBe(false);
+    expect(element.shadowRoot?.querySelector<HTMLButtonElement>("button[type=submit]")?.disabled).toBe(true);
+    expect(element.shadowRoot?.querySelector('[data-validation-field="provider"]')?.classList).toContain("validation-invalid");
+    expect(element.shadowRoot?.querySelector('[data-validation-field="model"]')?.classList).toContain("validation-invalid");
     expect(fetch.mock.calls.some(([input]) => String(input).endsWith("/models"))).toBe(false);
   });
 
@@ -240,12 +250,12 @@ describe("AiAppAssistantSettingsElement", () => {
     const loadedButton = element.shadowRoot?.querySelector<HTMLButtonElement>("[data-action=models]");
     const currentModel = element.shadowRoot?.querySelector<HTMLInputElement>("[name=model]");
     if (!loadedButton || !currentModel) throw new Error("Updated model controls missing");
-    expect(loadedButton.disabled).toBe(true);
-    expect(loadedButton.title).toBe("Models are already loaded");
+    expect(loadedButton.disabled).toBe(false);
+    expect(loadedButton.title).toBe("");
 
     currentModel.value = "another-model";
     currentModel.dispatchEvent(new Event("input", { bubbles: true }));
-    expect(loadedButton.disabled).toBe(true);
+    expect(loadedButton.disabled).toBe(false);
     const baseURL = element.shadowRoot?.querySelector<HTMLInputElement>("[name=baseURL]");
     if (!baseURL) throw new Error("Base URL input missing");
     baseURL.value = "https://proxy.example.test";

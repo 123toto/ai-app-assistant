@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createAes256GcmSecretProtector,
   createAiAppAssistantConfigurationRepository,
+  createDisabledSecretProtector,
   createMemoryAiAppAssistantStore,
   createRedisAiAppAssistantStore
 } from "./configuration.js";
@@ -157,5 +158,42 @@ describe("AI App Assistant configuration persistence", () => {
     expect(view?.administration?.keyCreatedBy).toEqual(actor);
     expect(view?.administration?.history).toHaveLength(1);
     expect(JSON.stringify(view)).not.toContain("secret");
+  });
+
+  it("requires an exact 32-byte encryption key and rejects tampered ciphertext", () => {
+    expect(() => createAes256GcmSecretProtector(randomBytes(31).toString("base64")))
+      .toThrow("exactly 32 base64-encoded bytes");
+    expect(() => createAes256GcmSecretProtector("not-base64"))
+      .toThrow("exactly 32 base64-encoded bytes");
+
+    const protector = createAes256GcmSecretProtector(randomBytes(32).toString("base64"));
+    const protectedSecret = protector.protect("provider-key");
+    const replacement = protectedSecret.endsWith("A") ? "B" : "A";
+    expect(protectedSecret).not.toContain("provider-key");
+    expect(protector.unprotect(protectedSecret)).toBe("provider-key");
+    expect(() => protector.unprotect(`${protectedSecret.slice(0, -1)}${replacement}`)).toThrow();
+    expect(() => protector.unprotect("v2.invalid.value.payload"))
+      .toThrow("Unsupported protected secret format");
+  });
+
+  it("fails closed when secret persistence has not been configured", () => {
+    const protector = createDisabledSecretProtector();
+    expect(() => protector.protect("secret")).toThrow("Secret persistence requires");
+    expect(() => protector.unprotect("protected")).toThrow("Secret persistence requires");
+  });
+
+  it("clears a saved configuration and exposes atomic compare-and-set conflicts", async () => {
+    const store = createMemoryAiAppAssistantStore();
+    const repository = createAiAppAssistantConfigurationRepository({
+      store,
+      secretProtector: { protect: String, unprotect: String }
+    });
+    await repository.save({ provider: "ollama", model: "qwen3", access: { mode: "all" } });
+    await repository.clear();
+    await expect(repository.load()).resolves.toBeUndefined();
+
+    await store.set("atomic", "current");
+    await expect(store.compareAndSet?.("atomic", "stale", "next")).resolves.toBe(false);
+    await expect(store.get("atomic")).resolves.toBe("current");
   });
 });
